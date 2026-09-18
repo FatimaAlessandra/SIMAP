@@ -69,8 +69,14 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Permitir leer IE a autenticados" ON instituciones_educativas;
 CREATE POLICY "Permitir leer IE a autenticados" ON instituciones_educativas FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Permitir insertar IE a autenticados" ON instituciones_educativas;
+CREATE POLICY "Permitir insertar IE a autenticados" ON instituciones_educativas FOR INSERT TO authenticated WITH CHECK (true);
+
 DROP POLICY IF EXISTS "Permitir leer docentes a autenticados" ON docentes;
 CREATE POLICY "Permitir leer docentes a autenticados" ON docentes FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Permitir insertar docentes a autenticados" ON docentes;
+CREATE POLICY "Permitir insertar docentes a autenticados" ON docentes FOR INSERT TO authenticated WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Permitir leer fichas a autenticados" ON fichas_monitoreo;
 CREATE POLICY "Permitir leer fichas a autenticados" ON fichas_monitoreo FOR SELECT TO authenticated USING (true);

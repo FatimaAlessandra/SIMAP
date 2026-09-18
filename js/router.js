@@ -49,7 +49,7 @@ const RouterModule = (() => {
     if (titleEl) {
       titleEl.textContent = title;
     }
-    document.title = `${title} | SIMAP`;
+    document.title = `${title} | SIMAP - Sistema Web de Monitoreo, Semaforización e Inteligencia de Acompañamiento Pedagógico`;
   };
 
   /**

@@ -1,4 +1,4 @@
-# SIMAP - Sistema Web de Monitoreo, Semaforización e Inteligencia de Acompañamiento Pedagógico
+# Sistema Web de Monitoreo, Semaforización e Inteligencia de Acompañamiento Pedagógico (SIMAP)
 
 > **Plataforma web institucional orientada a la gestión, evaluación docente, semaforización automatizada de riesgos pedagógicos y control de asistencia a capacitaciones para la UGEL.**
 
@@ -25,7 +25,14 @@
 ## 🎯 Descripción General
 
 **SIMAP** permite a los especialistas pedagógicos y directivos:
-- Registrar visitas de acompañamiento pedagógico en aula.
+- Registrar visitas de acompañamiento pedagógico en aula evaluando las **5 Rúbricas Oficiales de Observación de Aula del MINEDU**:
+  1. **Rúbrica I**: Involucra activamente a los estudiantes en el proceso de aprendizaje.
+  2. **Rúbrica II**: Promueve el razonamiento, la creatividad y/o el pensamiento crítico.
+  3. **Rúbrica III**: Evalúa el progreso de los aprendizajes para retroalimentar.
+  4. **Rúbrica IV**: Propicia un ambiente de respeto y proximidad.
+  5. **Rúbrica V**: Regula positivamente el comportamiento de los estudiantes.
+- Asignar niveles del 1 al 4 por rúbrica (Nivel I a IV), acumulando automáticamente el puntaje de 5 a 20 pts.
+- Registrar el progreso por etapas: **I Monitoreo (Diagnóstico)**, **II Monitoreo (Seguimiento)** y **III Monitoreo (Salida)** con una matriz comparativa idéntica al formato institucional de la UGEL.
 - Calcular en tiempo real y a nivel de base de datos el semáforo de riesgo del docente:
   - 🔴 **Crítico** (< 12 puntos): Requiere intervención y acompañamiento intensivo.
   - 🟡 **En Proceso** (12 a 15 puntos): Docente en nivel intermedio de desempeño.
@@ -164,13 +171,15 @@ Centro de inteligencia y consolidación de métricas.
 ---
 
 ### 6. `MonitoreoModule` (`js/modules/monitoreo.js`)
-Gestiona el registro de fichas pedagógicas y el cálculo del semáforo.
+Gestiona el registro de fichas pedagógicas, semaforización en tiempo real y el directorio de colegios y docentes.
 
-* **`render()`**: Retorna el formulario de evaluación y la vista de historial de fichas.
+* **`render()`**: Retorna la interfaz modular con 3 pestañas: *Registrar Ficha*, *Ver Historial* y *Directorio de Colegios (I.E.)*, junto con modales de creación rápida.
 * **`loadInstituciones()`**: Carga los colegios desde `instituciones_educativas`.
 * **`loadDocentes()`**: Carga los docentes registrados en `docentes`.
+* **Gestión de Colegios (I.E.)**: Permite registrar nuevos colegios (Código Modular, Nombre, Distrito, Nivel Educativo) con validación de código único y actualización automática de combos.
+* **Gestión de Docentes**: Permite dar de alta nuevos profesores vinculados a su colegio correspondiente (DNI, Nombres, Apellidos, Especialidad, Cargo, Jornada).
 * **`updateLivePreview(score)`**: Actualiza el panel lateral en vivo según el puntaje ingresado (0 a 20), cambiando el color de fondo, badge y recomendación pedagógica.
-* **`loadHistorialFichas()`**: Consulta las últimas 20 evaluaciones con los datos vinculados del docente e I.E.
+* **`loadHistorialFichas()`**: Consulta las últimas 25 evaluaciones con los datos vinculados del docente e I.E.
 * **Invocación RPC**: En el submit del formulario, invoca la función `registrar_ficha_y_auditar` en Supabase.
 
 ---

@@ -86,7 +86,10 @@ const DashboardModule = (() => {
               <span class="text-xs text-blue-200">&bull; UGEL Gestión Pedagógica</span>
             </div>
             <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">¡Hola, ${nombreUsuario}!</h2>
-            <p class="text-blue-100 text-sm mt-1 leading-relaxed">
+            <p class="text-blue-100 text-xs sm:text-sm mt-1 leading-relaxed font-medium">
+              Sistema Web de Monitoreo, Semaforización e Inteligencia de Acompañamiento Pedagógico (SIMAP)
+            </p>
+            <p class="text-blue-200 text-xs mt-0.5">
               Resumen ejecutivo en tiempo real: monitoreos docentes, semaforización de riesgos y asistencias a capacitaciones.
             </p>
           </div>
