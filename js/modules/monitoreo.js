@@ -221,12 +221,23 @@ const MonitoreoModule = (() => {
 
             <form id="form-monitoreo" class="space-y-6">
               
-              <!-- Datos Generales: Colegio, Docente, Ronda y Fecha -->
+              <!-- Datos Generales: Distrito, Colegio, Docente, Ronda y Fecha -->
               <div class="bg-slate-50/70 p-4 sm:p-5 rounded-xl border border-slate-200/60 space-y-4">
                 <h4 class="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
                   <span class="w-2 h-2 rounded-full bg-blue-600"></span>
                   1. Datos Generales de la Visita
                 </h4>
+
+                <!-- Fila 0: Distrito -->
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <label for="select-distrito" class="form-label mb-0 text-xs font-semibold">Distrito *</label>
+                    <span class="text-[11px] text-slate-400">Filtra los colegios por jurisdicción</span>
+                  </div>
+                  <select id="select-distrito" class="form-input !pl-3 text-sm">
+                    <option value="">-- Todos los Distritos --</option>
+                  </select>
+                </div>
 
                 <!-- Fila 1: Institución Educativa -->
                 <div>
@@ -242,10 +253,10 @@ const MonitoreoModule = (() => {
                   </select>
                 </div>
 
-                <!-- Fila 2: Docente Acompañado -->
+                <!-- Fila 2: Docente a Evaluar -->
                 <div>
                   <div class="flex items-center justify-between mb-1.5">
-                    <label for="select-docente" class="form-label mb-0 text-xs font-semibold">Docente Acompañado *</label>
+                    <label for="select-docente" class="form-label mb-0 text-xs font-semibold">Docente a Evaluar *</label>
                     <button type="button" id="btn-abrir-modal-docente" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                       <span>+ Agregar Docente</span>
@@ -300,8 +311,8 @@ const MonitoreoModule = (() => {
                             <p class="text-[11px] text-slate-400 leading-tight mt-0.5">${r.descripcion}</p>
                           </div>
                         </div>
-                        <span id="label-score-r${r.id}" class="text-xs font-bold text-blue-600 self-end sm:self-center bg-blue-50 px-2 py-0.5 rounded">
-                          Nivel III (3 pts)
+                        <span id="label-score-r${r.id}" class="text-xs font-bold text-slate-400 self-end sm:self-center bg-slate-100 px-2.5 py-0.5 rounded transition-colors">
+                          Sin calificar
                         </span>
                       </div>
 
@@ -309,23 +320,23 @@ const MonitoreoModule = (() => {
                       <div class="grid grid-cols-4 gap-2 pt-2 border-t border-slate-100">
                         <label class="cursor-pointer">
                           <input type="radio" name="rubrica_${r.id}" value="1" class="peer sr-only rubrica-input" data-rubrica-num="${r.id}">
-                          <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 transition-all">
+                          <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 hover:bg-slate-50 transition-all">
                             <span class="block text-xs font-extrabold">Nivel I</span>
                             <span class="text-[10px] text-slate-500 block">1 pt</span>
                           </div>
                         </label>
 
                         <label class="cursor-pointer">
-                          <input type="radio" name="rubrica_${r.id}" value="2" class="peer sr-only rubrica-input" data-rubrica-num="${r.id}" ${r.id === 2 ? 'checked' : ''}>
-                          <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 transition-all">
+                          <input type="radio" name="rubrica_${r.id}" value="2" class="peer sr-only rubrica-input" data-rubrica-num="${r.id}">
+                          <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 hover:bg-slate-50 transition-all">
                             <span class="block text-xs font-extrabold">Nivel II</span>
                             <span class="text-[10px] text-slate-500 block">2 pts</span>
                           </div>
                         </label>
 
                         <label class="cursor-pointer">
-                          <input type="radio" name="rubrica_${r.id}" value="3" class="peer sr-only rubrica-input" data-rubrica-num="${r.id}" ${r.id !== 2 ? 'checked' : ''}>
-                          <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 transition-all">
+                          <input type="radio" name="rubrica_${r.id}" value="3" class="peer sr-only rubrica-input" data-rubrica-num="${r.id}">
+                          <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 hover:bg-slate-50 transition-all">
                             <span class="block text-xs font-extrabold">Nivel III</span>
                             <span class="text-[10px] text-slate-500 block">3 pts</span>
                           </div>
@@ -333,7 +344,7 @@ const MonitoreoModule = (() => {
 
                         <label class="cursor-pointer">
                           <input type="radio" name="rubrica_${r.id}" value="4" class="peer sr-only rubrica-input" data-rubrica-num="${r.id}">
-                          <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700 transition-all">
+                          <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700 hover:bg-slate-50 transition-all">
                             <span class="block text-xs font-extrabold">Nivel IV</span>
                             <span class="text-[10px] text-slate-500 block">4 pts</span>
                           </div>
@@ -375,14 +386,14 @@ const MonitoreoModule = (() => {
             <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm text-center">
               <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Puntaje Acumulado y Semáforo</h4>
               
-              <div id="preview-semaforo-box" class="p-6 rounded-xl border border-amber-200 bg-amber-50 transition-all duration-300">
-                <span id="preview-badge" class="badge-semaforo badge-proceso text-sm px-4 py-1.5 shadow-sm">
-                  En Proceso
+              <div id="preview-semaforo-box" class="p-6 rounded-xl border border-slate-200 bg-slate-50 transition-all duration-300">
+                <span id="preview-badge" class="badge-semaforo bg-slate-200 text-slate-700 text-sm px-4 py-1.5 shadow-sm">
+                  Sin calificar
                 </span>
-                <p id="preview-puntaje" class="text-4xl font-extrabold text-slate-800 mt-3">14 pts</p>
-                <p class="text-xs text-slate-500 mt-1 font-mono">(De 20 puntos posibles)</p>
-                <p id="preview-mensaje" class="text-xs text-amber-800 mt-3 font-medium">
-                  Nivel intermedio. Necesita refuerzo pedagógico continuo.
+                <p id="preview-puntaje" class="text-4xl font-extrabold text-slate-700 mt-3">-- pts</p>
+                <p id="preview-total-subtext" class="text-xs text-slate-400 mt-1 font-mono">(0 de 5 rúbricas evaluadas)</p>
+                <p id="preview-mensaje" class="text-xs text-slate-500 mt-3 font-medium">
+                  Asigna el nivel (1 al 4) en cada una de las 5 rúbricas para calcular el semáforo en vivo.
                 </p>
               </div>
 
@@ -392,23 +403,23 @@ const MonitoreoModule = (() => {
                 <div class="space-y-1 text-slate-600">
                   <div class="flex items-center justify-between p-1.5 rounded bg-slate-50">
                     <span>Rúbrica I (Involucra):</span>
-                    <strong id="mini-score-1" class="text-blue-600">3 pts</strong>
+                    <strong id="mini-score-1" class="text-slate-400 font-normal">--</strong>
                   </div>
                   <div class="flex items-center justify-between p-1.5 rounded bg-slate-50">
                     <span>Rúbrica II (Razonamiento):</span>
-                    <strong id="mini-score-2" class="text-amber-600">2 pts</strong>
+                    <strong id="mini-score-2" class="text-slate-400 font-normal">--</strong>
                   </div>
                   <div class="flex items-center justify-between p-1.5 rounded bg-slate-50">
                     <span>Rúbrica III (Retroalimenta):</span>
-                    <strong id="mini-score-3" class="text-blue-600">3 pts</strong>
+                    <strong id="mini-score-3" class="text-slate-400 font-normal">--</strong>
                   </div>
                   <div class="flex items-center justify-between p-1.5 rounded bg-slate-50">
                     <span>Rúbrica IV (Respeto):</span>
-                    <strong id="mini-score-4" class="text-blue-600">3 pts</strong>
+                    <strong id="mini-score-4" class="text-slate-400 font-normal">--</strong>
                   </div>
                   <div class="flex items-center justify-between p-1.5 rounded bg-slate-50">
                     <span>Rúbrica V (Comportamiento):</span>
-                    <strong id="mini-score-5" class="text-blue-600">3 pts</strong>
+                    <strong id="mini-score-5" class="text-slate-400 font-normal">--</strong>
                   </div>
                 </div>
               </div>
@@ -578,7 +589,12 @@ const MonitoreoModule = (() => {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label for="ie-distrito" class="form-label text-xs font-semibold">Distrito *</label>
-                <input type="text" id="ie-distrito" class="form-input !pl-3 text-sm" placeholder="Ej: Chepén, Pacanga, Pueblo Nuevo" required value="Chepén">
+                <input type="text" id="ie-distrito" list="distritos-list-suggestions" class="form-input !pl-3 text-sm" placeholder="Ej: Chepén, Pacanga, Pueblo Nuevo" required value="Chepén">
+                <datalist id="distritos-list-suggestions">
+                  <option value="Chepén">
+                  <option value="Pacanga">
+                  <option value="Pueblo Nuevo">
+                </datalist>
               </div>
 
               <div>
@@ -698,104 +714,233 @@ const MonitoreoModule = (() => {
   const getSelectedRubricas = () => {
     const values = {};
     let total = 0;
+    let count = 0;
 
     for (let i = 1; i <= 5; i++) {
       const checked = document.querySelector(`input[name="rubrica_${i}"]:checked`);
-      const val = checked ? parseInt(checked.value, 10) : 3;
-      values[`r${i}`] = val;
-      total += val;
+      if (checked) {
+        const val = parseInt(checked.value, 10);
+        values[`r${i}`] = val;
+        total += val;
+        count++;
+      } else {
+        values[`r${i}`] = null;
+      }
     }
 
-    return { ...values, total };
+    return { 
+      ...values, 
+      total, 
+      count, 
+      allSelected: count === 5 
+    };
   };
 
   /**
    * Actualiza el cuadro de semaforización y etiquetas en tiempo real al cambiar cualquier rúbrica
    */
   const updateLivePreviewFromRubricas = () => {
-    const { r1, r2, r3, r4, r5, total } = getSelectedRubricas();
+    const { r1, r2, r3, r4, r5, total, count, allSelected } = getSelectedRubricas();
 
-    // Actualizar etiquetas individuales en las cards
-    const labelsMap = { 1: 'Nivel I (1 pt)', 2: 'Nivel II (2 pts)', 3: 'Nivel III (3 pts)', 4: 'Nivel IV (4 pts)' };
+    const levelInfo = {
+      1: { text: 'Nivel I (1 pt)', class: 'bg-red-100 text-red-700', miniClass: 'text-red-600 font-bold' },
+      2: { text: 'Nivel II (2 pts)', class: 'bg-amber-100 text-amber-700', miniClass: 'text-amber-600 font-bold' },
+      3: { text: 'Nivel III (3 pts)', class: 'bg-blue-100 text-blue-700', miniClass: 'text-blue-600 font-bold' },
+      4: { text: 'Nivel IV (4 pts)', class: 'bg-emerald-100 text-emerald-700', miniClass: 'text-emerald-600 font-bold' }
+    };
+
+    const rubricaValues = [r1, r2, r3, r4, r5];
+
+    // Actualizar etiquetas individuales en las cards y en el desglose lateral
     for (let i = 1; i <= 5; i++) {
-      const val = [r1, r2, r3, r4, r5][i - 1];
+      const val = rubricaValues[i - 1];
       const lbl = document.getElementById(`label-score-r${i}`);
       const mini = document.getElementById(`mini-score-${i}`);
-      if (lbl) lbl.textContent = labelsMap[val];
-      if (mini) mini.textContent = `${val} pts`;
+
+      if (val && levelInfo[val]) {
+        if (lbl) {
+          lbl.textContent = levelInfo[val].text;
+          lbl.className = `text-xs font-bold self-end sm:self-center px-2.5 py-0.5 rounded transition-colors ${levelInfo[val].class}`;
+        }
+        if (mini) {
+          mini.textContent = `${val} pts`;
+          mini.className = levelInfo[val].miniClass;
+        }
+      } else {
+        if (lbl) {
+          lbl.textContent = 'Sin calificar';
+          lbl.className = 'text-xs font-bold text-slate-400 self-end sm:self-center bg-slate-100 px-2.5 py-0.5 rounded transition-colors';
+        }
+        if (mini) {
+          mini.textContent = '--';
+          mini.className = 'text-slate-400 font-normal';
+        }
+      }
     }
 
     // Actualizar caja del semáforo lateral
     const previewBox = document.getElementById('preview-semaforo-box');
     const badge = document.getElementById('preview-badge');
     const scoreText = document.getElementById('preview-puntaje');
+    const subtext = document.getElementById('preview-total-subtext');
     const mensaje = document.getElementById('preview-mensaje');
 
-    if (!previewBox || !badge) return;
+    if (!previewBox || !badge || !scoreText) return;
 
+    if (!allSelected) {
+      badge.textContent = count === 0 ? 'Sin calificar' : `En evaluación (${count}/5)`;
+      badge.className = 'badge-semaforo bg-slate-200 text-slate-700 text-sm px-4 py-1.5 shadow-sm';
+      scoreText.textContent = count === 0 ? '-- pts' : `${total} pts`;
+      if (subtext) subtext.textContent = `(${count} de 5 rúbricas evaluadas)`;
+      if (mensaje) {
+        mensaje.textContent = count === 0 
+          ? 'Asigna el nivel (1 al 4) en cada una de las 5 rúbricas para calcular el semáforo en vivo.' 
+          : `Faltan calificar ${5 - count} rúbrica(s) para obtener el semáforo final.`;
+        mensaje.className = 'text-xs text-slate-500 mt-3 font-medium';
+      }
+      previewBox.className = 'p-6 rounded-xl border border-slate-200 bg-slate-50 transition-all duration-300';
+      return;
+    }
+
+    // Cuando las 5 rúbricas están seleccionadas:
     const info = getRiskInfo(total);
     badge.textContent = info.nivel;
     badge.className = `badge-semaforo ${info.clase} text-sm px-4 py-1.5 shadow-sm`;
     scoreText.textContent = `${total} pts`;
-    mensaje.textContent = info.mensaje;
+    if (subtext) subtext.textContent = '(De 20 puntos posibles)';
+    if (mensaje) {
+      mensaje.textContent = info.mensaje;
+      let msgColor = 'text-slate-600';
+      if (total < 12) msgColor = 'text-red-700';
+      else if (total < 16) msgColor = 'text-amber-800';
+      else msgColor = 'text-emerald-700';
+      mensaje.className = `text-xs mt-3 font-medium ${msgColor}`;
+    }
     previewBox.className = `p-6 rounded-xl border transition-all duration-300 ${info.bg}`;
   };
 
   /**
-   * Llena los combos de Instituciones y Docentes
+   * Actualiza las opciones del combo de Instituciones Educativas según el distrito
    */
-  const populateCombos = async (selectedIeIdPre = null, selectedDocenteIdPre = null) => {
+  const actualizarComboIE = (distritoFiltro = '', ieIdToSelect = null) => {
     const selectIE = document.getElementById('select-ie');
-    const selectDocente = document.getElementById('select-docente');
-    const modalSelectIE = document.getElementById('docente-modal-ie');
+    if (!selectIE) return;
 
-    if (!selectIE || !selectDocente) return;
+    const colegiosFiltrados = distritoFiltro 
+      ? institucionesCache.filter(ie => (ie.distrito || '').trim().toLowerCase() === distritoFiltro.trim().toLowerCase())
+      : institucionesCache;
 
-    selectIE.innerHTML = '<option value="">Cargando instituciones...</option>';
-    const instituciones = await loadInstituciones();
-    const docentes = await loadDocentes();
+    if (colegiosFiltrados.length === 0) {
+      selectIE.innerHTML = '<option value="">No hay colegios en este distrito. ¡Haz clic en + Agregar Colegio!</option>';
+      actualizarComboDocentes(null);
+      return;
+    }
 
-    if (instituciones.length === 0) {
-      selectIE.innerHTML = '<option value="">No hay colegios. ¡Haz clic en + Agregar Colegio!</option>';
+    selectIE.innerHTML = '<option value="">-- Seleccionar Institución Educativa --</option>' + 
+      colegiosFiltrados.map(ie => `
+        <option value="${ie.id_ie}" ${ieIdToSelect === ie.id_ie ? 'selected' : ''}>
+          ${ie.nombre_ie} (${ie.distrito} - ${ie.nivel_educativo})
+        </option>
+      `).join('');
+
+    // Si había un colegio seleccionado y sigue existiendo en el filtro, mantenerlo
+    if (ieIdToSelect && colegiosFiltrados.some(ie => ie.id_ie === ieIdToSelect)) {
+      selectIE.value = ieIdToSelect;
+      actualizarComboDocentes(ieIdToSelect);
     } else {
-      selectIE.innerHTML = '<option value="">-- Seleccionar Institución Educativa --</option>' + 
-        instituciones.map(ie => `
-          <option value="${ie.id_ie}" ${selectedIeIdPre === ie.id_ie ? 'selected' : ''}>
-            ${ie.nombre_ie} (${ie.distrito} - ${ie.nivel_educativo})
+      actualizarComboDocentes(null);
+    }
+  };
+
+  /**
+   * Actualiza las opciones del combo de Docentes según la I.E.
+   */
+  const actualizarComboDocentes = (ieId, selectTeacherId = null) => {
+    const selectDocente = document.getElementById('select-docente');
+    if (!selectDocente) return;
+
+    if (!ieId) {
+      selectDocente.innerHTML = '<option value="">-- Primero selecciona una Institución --</option>';
+      return;
+    }
+
+    const docentesIE = docentesCache.filter(d => d.id_ie === ieId);
+    if (docentesIE.length === 0) {
+      selectDocente.innerHTML = '<option value="">No hay docentes registrados en este colegio. ¡Haz clic en + Agregar Docente!</option>';
+    } else {
+      selectDocente.innerHTML = '<option value="">-- Seleccionar Docente a Evaluar --</option>' +
+        docentesIE.map(d => `
+          <option value="${d.id_docente}" ${selectTeacherId === d.id_docente ? 'selected' : ''}>
+            ${d.apellido_paterno} ${d.apellido_materno}, ${d.nombres} - ${d.especialidad || d.cargo} (DNI: ${d.dni || 'S/D'})
           </option>
         `).join('');
     }
+  };
 
-    if (modalSelectIE) {
-      modalSelectIE.innerHTML = '<option value="">-- Seleccionar Colegio --</option>' + 
-        instituciones.map(ie => `<option value="${ie.id_ie}">${ie.nombre_ie} (${ie.distrito})</option>`).join('');
+  /**
+   * Llena los combos de Distrito, Instituciones y Docentes
+   */
+  const populateCombos = async (distritoOrOpts = null, selectedIeIdPre = null, selectedDocenteIdPre = null) => {
+    const selectDistrito = document.getElementById('select-distrito');
+    const selectIE = document.getElementById('select-ie');
+    const modalSelectIE = document.getElementById('docente-modal-ie');
+
+    if (!selectIE) return;
+
+    selectIE.innerHTML = '<option value="">Cargando instituciones...</option>';
+    await loadInstituciones();
+    await loadDocentes();
+
+    // Normalizar argumentos
+    let selectedDistrito = null;
+    let selectedIe = selectedIeIdPre;
+    let selectedDoc = selectedDocenteIdPre;
+
+    if (typeof distritoOrOpts === 'object' && distritoOrOpts !== null) {
+      selectedDistrito = distritoOrOpts.distrito || null;
+      selectedIe = distritoOrOpts.ieId || null;
+      selectedDoc = distritoOrOpts.docenteId || null;
+    } else if (typeof distritoOrOpts === 'string') {
+      const ieMatch = institucionesCache.find(i => i.id_ie === distritoOrOpts);
+      if (ieMatch) {
+        selectedDistrito = ieMatch.distrito;
+        selectedIe = ieMatch.id_ie;
+        selectedDoc = selectedIeIdPre;
+      } else {
+        selectedDistrito = distritoOrOpts;
+      }
     }
 
-    const actualizarComboDocentes = (ieId, selectTeacherId = null) => {
-      if (!ieId) {
-        selectDocente.innerHTML = '<option value="">-- Primero selecciona una Institución --</option>';
-        return;
-      }
+    // 1. Población del combo de Distritos
+    const baseDistritos = ['Chepén', 'Pacanga', 'Pueblo Nuevo'];
+    const dbDistritos = institucionesCache.map(ie => ie.distrito).filter(Boolean);
+    const distritosUnicos = Array.from(new Set([...baseDistritos, ...dbDistritos])).sort();
 
-      const docentesIE = docentesCache.filter(d => d.id_ie === ieId);
-      if (docentesIE.length === 0) {
-        selectDocente.innerHTML = '<option value="">No hay docentes en este colegio. ¡Haz clic en + Agregar Docente!</option>';
-      } else {
-        selectDocente.innerHTML = '<option value="">-- Seleccionar Docente --</option>' +
-          docentesIE.map(d => `
-            <option value="${d.id_docente}" ${selectTeacherId === d.id_docente ? 'selected' : ''}>
-              ${d.apellido_paterno} ${d.apellido_materno}, ${d.nombres} - ${d.especialidad || d.cargo} (DNI: ${d.dni || 'S/D'})
-            </option>
-          `).join('');
-      }
-    };
+    if (selectDistrito) {
+      selectDistrito.innerHTML = `
+        <option value="">-- Todos los Distritos --</option>
+        ${distritosUnicos.map(d => `
+          <option value="${d}" ${selectedDistrito && selectedDistrito.toLowerCase() === d.toLowerCase() ? 'selected' : ''}>
+            Distrito de ${d}
+          </option>
+        `).join('')}
+      `;
+    }
 
-    selectIE.addEventListener('change', () => {
-      actualizarComboDocentes(selectIE.value);
-    });
+    // 2. Población del combo de Instituciones con filtro si corresponde
+    actualizarComboIE(selectedDistrito || '', selectedIe);
 
-    if (selectedIeIdPre) {
-      actualizarComboDocentes(selectedIeIdPre, selectedDocenteIdPre);
+    // 3. Población del combo de Docentes
+    if (selectedIe) {
+      actualizarComboDocentes(selectedIe, selectedDoc);
+    } else {
+      actualizarComboDocentes(null);
+    }
+
+    // 4. Modal de nuevo docente: combo de colegios
+    if (modalSelectIE) {
+      modalSelectIE.innerHTML = '<option value="">-- Seleccionar Colegio --</option>' + 
+        institucionesCache.map(ie => `<option value="${ie.id_ie}" ${selectedIe === ie.id_ie ? 'selected' : ''}>${ie.nombre_ie} (${ie.distrito})</option>`).join('');
     }
   };
 
@@ -1018,7 +1163,28 @@ const MonitoreoModule = (() => {
     document.getElementById('btn-recargar-matriz')?.addEventListener('click', renderMatrizTable);
     document.getElementById('btn-recargar-historial')?.addEventListener('click', renderHistorialTable);
 
-    // 2. Modales de Creación Rápida
+    // 2. Filtro en Cascada: Distrito -> Institución Educativa -> Docentes
+    const selectDistrito = document.getElementById('select-distrito');
+    const selectIE = document.getElementById('select-ie');
+
+    selectDistrito?.addEventListener('change', () => {
+      actualizarComboIE(selectDistrito.value);
+    });
+
+    selectIE?.addEventListener('change', () => {
+      const ieId = selectIE.value;
+      if (ieId) {
+        const ieObj = institucionesCache.find(i => i.id_ie === ieId);
+        if (ieObj && ieObj.distrito && selectDistrito) {
+          if (selectDistrito.value !== ieObj.distrito) {
+            selectDistrito.value = ieObj.distrito;
+          }
+        }
+      }
+      actualizarComboDocentes(ieId);
+    });
+
+    // 3. Modales de Creación Rápida
     const modalIE = document.getElementById('modal-nueva-ie');
     const modalDocente = document.getElementById('modal-nuevo-docente');
 
@@ -1041,7 +1207,7 @@ const MonitoreoModule = (() => {
     document.getElementById('btn-cerrar-modal-docente')?.addEventListener('click', () => cerrarModal(modalDocente));
     document.getElementById('btn-cancelar-modal-docente')?.addEventListener('click', () => cerrarModal(modalDocente));
 
-    // 3. Formulario Modal Colegio
+    // 4. Formulario Modal Colegio
     const formModalIE = document.getElementById('form-modal-ie');
     if (formModalIE) {
       formModalIE.addEventListener('submit', async (e) => {
@@ -1075,7 +1241,7 @@ const MonitoreoModule = (() => {
           btnSubmit.disabled = false;
           btnSubmit.innerHTML = origText;
 
-          await populateCombos(data.id_ie);
+          await populateCombos({ distrito: data.distrito, ieId: data.id_ie });
           renderColegiosTable();
 
         } catch (err) {
@@ -1087,7 +1253,7 @@ const MonitoreoModule = (() => {
       });
     }
 
-    // 4. Formulario Modal Docente
+    // 5. Formulario Modal Docente
     const formModalDocente = document.getElementById('form-modal-docente');
     if (formModalDocente) {
       formModalDocente.addEventListener('submit', async (e) => {
@@ -1136,9 +1302,8 @@ const MonitoreoModule = (() => {
           btnSubmit.disabled = false;
           btnSubmit.innerHTML = origText;
 
-          const selectIe = document.getElementById('select-ie');
-          if (selectIe) selectIe.value = idIe;
-          await populateCombos(idIe, data.id_docente);
+          const ieObj = institucionesCache.find(i => i.id_ie === idIe);
+          await populateCombos({ distrito: ieObj?.distrito || null, ieId: idIe, docenteId: data.id_docente });
 
         } catch (err) {
           console.error('Error al registrar docente:', err);
@@ -1149,29 +1314,52 @@ const MonitoreoModule = (() => {
       });
     }
 
-    // 5. Escuchar cambios en los radio buttons de las 5 rúbricas
+    // 6. Escuchar cambios en los radio buttons de las 5 rúbricas
     document.querySelectorAll('.rubrica-input').forEach(input => {
       input.addEventListener('change', updateLivePreviewFromRubricas);
     });
 
-    // 6. Envío del Formulario de Monitoreo por Rúbricas
+    // 7. Envío del Formulario de Monitoreo por Rúbricas
     const formMonitoreo = document.getElementById('form-monitoreo');
     if (formMonitoreo) {
       formMonitoreo.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const idIE = document.getElementById('select-ie').value;
-        const idDocente = document.getElementById('select-docente').value;
-        const nroMonitoreo = document.getElementById('select-nro-monitoreo').value;
-        const fecha = document.getElementById('input-fecha').value;
-        const observaciones = document.getElementById('input-observaciones').value.trim();
+        const idIE = document.getElementById('select-ie')?.value;
+        const idDocente = document.getElementById('select-docente')?.value;
+        const nroMonitoreo = document.getElementById('select-nro-monitoreo')?.value;
+        const fecha = document.getElementById('input-fecha')?.value;
+        const observaciones = document.getElementById('input-observaciones')?.value.trim();
         const submitBtn = document.getElementById('btn-guardar-ficha');
-        const originalBtnHtml = submitBtn.innerHTML;
+        const originalBtnHtml = submitBtn?.innerHTML;
 
-        const { r1, r2, r3, r4, r5, total } = getSelectedRubricas();
+        if (!idIE || !idDocente) {
+          window.SIMAP?.Notification?.warning('Por favor selecciona la Institución Educativa y el Docente a evaluar.');
+          return;
+        }
 
-        if (!idIE || !idDocente || !fecha) {
-          window.SIMAP?.Notification?.warning('Por favor completa los datos del colegio, docente y fecha.');
+        if (!fecha) {
+          window.SIMAP?.Notification?.warning('Por favor selecciona la Fecha de Visita en Aula.');
+          return;
+        }
+
+        const { r1, r2, r3, r4, r5, total, count, allSelected } = getSelectedRubricas();
+
+        if (!allSelected) {
+          window.SIMAP?.Notification?.warning(
+            `Debes calificar las 5 rúbricas del docente. Has calificado ${count} de 5 rúbricas.`
+          );
+
+          // Hacer scroll suave hacia la primera rúbrica pendiente
+          for (let i = 1; i <= 5; i++) {
+            if (!document.querySelector(`input[name="rubrica_${i}"]:checked`)) {
+              const card = document.querySelector(`[data-rubrica="${i}"]`);
+              card?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              card?.classList.add('ring-2', 'ring-blue-500');
+              setTimeout(() => card?.classList.remove('ring-2', 'ring-blue-500'), 2500);
+              break;
+            }
+          }
           return;
         }
 
@@ -1214,7 +1402,10 @@ const MonitoreoModule = (() => {
             `¡${nroMonitoreo} Monitoreo registrado! Puntaje por rúbricas: <strong>${total} pts</strong> (Semáforo: <strong>${nivelCalculado}</strong>).`
           );
 
+          // Resetear el formulario y las rúbricas
           document.getElementById('input-observaciones').value = '';
+          document.querySelectorAll('.rubrica-input').forEach(input => { input.checked = false; });
+          updateLivePreviewFromRubricas();
           submitBtn.disabled = false;
           submitBtn.innerHTML = originalBtnHtml;
 
