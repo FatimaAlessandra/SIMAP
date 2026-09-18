@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIMAP - Iniciar Sesión | Sistema de Monitoreo Pedagógico</title>
+  
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Estilos del Sistema SIMAP -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <div class="auth-wrapper">
+    <!-- Contenedor Principal con Glassmorphism -->
+    <div class="glass-card w-full max-w-md p-8 sm:p-10 text-center relative z-10">
+      
+      <!-- Logo y Encabezado Institucional -->
+      <div class="mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-lg mb-4">
+          <!-- Icono Educativo / Gráfico -->
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+        </div>
+        
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">SIMAP</h1>
+        <p class="text-xs sm:text-sm font-medium text-blue-600 mt-1 uppercase tracking-wider">
+          Monitoreo, Semaforización y Acompañamiento
+        </p>
+        <p class="text-xs text-slate-500 mt-2">
+          Gestión de Acompañamiento Pedagógico y Capacitaciones
+        </p>
+      </div>
+
+      <!-- Alerta informativa si falta configurar config.js -->
+      <div id="config-warning" class="hidden mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg text-left">
+        <div class="flex items-start gap-2">
+          <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+          <div class="text-xs text-amber-800">
+            <strong>Configuración requerida:</strong> Abre <code class="bg-amber-100 px-1 rounded">js/config.js</code> y coloca tu URL y ANON_KEY de Supabase.
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulario de Inicio de Sesión -->
+      <form id="login-form" novalidate>
+        
+        <!-- Campo: Correo Electrónico -->
+        <div class="form-group">
+          <label for="email" class="form-label">Correo Institucional</label>
+          <div class="input-container">
+            <span class="input-icon">
+              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"></path>
+              </svg>
+            </span>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              class="form-input" 
+              placeholder="ejemplo@ugel.gob.pe" 
+              required
+              autocomplete="email"
+            >
+          </div>
+        </div>
+
+        <!-- Campo: Contraseña -->
+        <div class="form-group">
+          <div class="flex items-center justify-between mb-1">
+            <label for="password" class="form-label mb-0">Contraseña</label>
+          </div>
+          <div class="input-container">
+            <span class="input-icon">
+              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+              </svg>
+            </span>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              class="form-input pr-10" 
+              placeholder="••••••••" 
+              required
+              autocomplete="current-password"
+            >
+            <button type="button" id="toggle-password" class="toggle-password" title="Mostrar/Ocultar contraseña" aria-label="Mostrar/Ocultar contraseña">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:20px;height:20px">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Botón de Envío -->
+        <button type="submit" id="btn-submit" class="btn-primary mt-4">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+          </svg>
+          <span>Ingresar al Sistema</span>
+        </button>
+      </form>
+
+      <!-- Pie del Formulario -->
+      <div class="mt-8 pt-6 border-t border-slate-100 text-center">
+        <p class="text-xs text-slate-400">
+          SIMAP v1.0 &copy; 2026 UGEL / Sistema Pedagógico
+        </p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Contenedor para notificaciones Toast -->
+  <div id="toast-container"></div>
+
+  <!-- Librería Oficial de Supabase Client JS (v2) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Módulos de la Aplicación -->
+  <script src="js/utils/notifications.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+
+  <!-- Script de chequeo de configuración inicial -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.SIMAP?.Config && !window.SIMAP.Config.isConfigured()) {
+        const warning = document.getElementById('config-warning');
+        if (warning) warning.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

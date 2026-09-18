@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | SIMAP</title>
+
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Estilos del Sistema SIMAP -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="h-full flex overflow-hidden font-sans">
+
+  <!-- Overlay móvil para cerrar sidebar al hacer clic afuera -->
+  <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/40 z-30 hidden lg:hidden backdrop-blur-sm transition-opacity"></div>
+
+  <!-- ========================================================================
+       BARRA LATERAL (SIDEBAR)
+       ======================================================================== -->
+  <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-40 w-72 bg-white border-r border-slate-200/80 flex flex-col justify-between transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out shadow-lg lg:shadow-none">
+    
+    <!-- Parte Superior: Logo e Identidad -->
+    <div class="p-6 border-b border-slate-100">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight leading-none">SIMAP</h1>
+            <span class="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Gestión Pedagógica</span>
+          </div>
+        </div>
+
+        <!-- Botón cerrar en móviles -->
+        <button id="close-sidebar-btn" class="lg:hidden text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navegación Principal (SPA Links) -->
+    <div class="flex-1 px-4 py-6 overflow-y-auto">
+      <div class="mb-3 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+        Módulos del Sistema
+      </div>
+
+      <nav class="space-y-1.5">
+        <!-- 1. Inicio / Dashboard -->
+        <a href="#/dashboard" class="nav-link active">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          <span>Panel de Inicio</span>
+        </a>
+
+        <!-- 2. Monitoreo y Semaforización -->
+        <a href="#/monitoreo" class="nav-link">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <span>Monitoreo Docente</span>
+        </a>
+
+        <!-- 3. Capacitaciones y Eventos -->
+        <a href="#/capacitaciones" class="nav-link">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+          <span>Capacitaciones</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Parte Inferior: Perfil del Usuario y Logout -->
+    <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+      <div class="flex items-center gap-3 mb-3 px-2">
+        <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center flex-shrink-0 text-sm" id="user-avatar">
+          EP
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-slate-800 truncate" id="user-name">Cargando...</p>
+          <div class="flex items-center gap-1.5 mt-0.5">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span class="text-[11px] font-medium text-slate-500 truncate" id="user-role">Especialista</span>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-logout" class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-100">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        <span>Cerrar Sesión</span>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ========================================================================
+       ÁREA PRINCIPAL DE CONTENIDO
+       ======================================================================== -->
+  <div class="flex-1 flex flex-col h-full overflow-hidden">
+    
+    <!-- Barra Superior (Header) -->
+    <header class="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-8 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center gap-4">
+        <!-- Botón Toggle en móviles -->
+        <button id="open-sidebar-btn" class="lg:hidden text-slate-600 hover:text-slate-900 p-2 rounded-lg hover:bg-slate-100">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+
+        <!-- Título Dinámico de la Vista Actual -->
+        <div>
+          <h2 id="view-title" class="text-lg sm:text-xl font-bold text-slate-800 tracking-tight">Panel Principal</h2>
+        </div>
+      </div>
+
+      <!-- Indicadores y Acciones Rápidas -->
+      <div class="flex items-center gap-3">
+        <!-- Badge Institucional -->
+        <div class="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>UGEL En Línea</span>
+        </div>
+
+        <!-- Botón Rápido Salir -->
+        <button id="btn-quick-logout" title="Cerrar sesión" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Contenedor Dinámico donde el Router inyecta cada Vista -->
+    <main id="app-content" class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+      <!-- Inyectado por router.js -->
+    </main>
+
+  </div>
+
+  <!-- Contenedor para Notificaciones Toast -->
+  <div id="toast-container"></div>
+
+  <!-- Librería Oficial de Supabase Client JS (v2) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Módulos de la Aplicación -->
+  <script src="js/utils/notifications.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/modules/dashboard.js"></script>
+  <script src="js/modules/monitoreo.js"></script>
+  <script src="js/modules/capacitaciones.js"></script>
+  <script src="js/router.js"></script>
+
+  <!-- Inicialización del Dashboard, Seguridad y Enrutamiento -->
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Validar autenticación activa (si no está logueado, redirige automáticamente a index.html)
+      const session = await window.SIMAP.Auth.checkAuth({ isLoginPage: false });
+      if (!session) return;
+
+      // 2. Cargar datos del usuario en la barra lateral
+      let userProfile = JSON.parse(localStorage.getItem('simap_user') || 'null');
+      
+      if (!userProfile && session.user) {
+        userProfile = await window.SIMAP.Auth.getUserProfile(session.user.id);
+        if (userProfile) {
+          localStorage.setItem('simap_user', JSON.stringify(userProfile));
+        }
+      }
+
+      if (userProfile) {
+        const nombre = userProfile.nombres || session.user.email.split('@')[0];
+        const rol = userProfile.roles?.nombre_rol || 'Especialista';
+        
+        document.getElementById('user-name').textContent = nombre;
+        document.getElementById('user-role').textContent = rol;
+        
+        // Iniciales para el avatar
+        const initials = nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'US';
+        document.getElementById('user-avatar').textContent = initials;
+      } else if (session.user) {
+        document.getElementById('user-name').textContent = session.user.email.split('@')[0];
+      }
+
+      // 3. Inicializar el Enrutador SPA
+      window.SIMAP.Router.init();
+
+      // 4. Configurar controles del Sidebar móvil
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+      const openBtn = document.getElementById('open-sidebar-btn');
+      const closeBtn = document.getElementById('close-sidebar-btn');
+
+      const toggleSidebar = (open) => {
+        if (open) {
+          sidebar.classList.remove('-translate-x-full');
+          overlay.classList.remove('hidden');
+        } else {
+          sidebar.classList.add('-translate-x-full');
+          overlay.classList.add('hidden');
+        }
+      };
+
+      if (openBtn) openBtn.addEventListener('click', () => toggleSidebar(true));
+      if (closeBtn) closeBtn.addEventListener('click', () => toggleSidebar(false));
+      if (overlay) overlay.addEventListener('click', () => toggleSidebar(false));
+
+      // Cerrar sidebar al hacer clic en un enlace en móviles
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => toggleSidebar(false));
+      });
+
+      // 5. Configurar botones de Logout
+      const handleLogout = async () => {
+        if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+          await window.SIMAP.Auth.logout();
+        }
+      };
+
+      const btnLogout = document.getElementById('btn-logout');
+      const btnQuickLogout = document.getElementById('btn-quick-logout');
+      if (btnLogout) btnLogout.addEventListener('click', handleLogout);
+      if (btnQuickLogout) btnQuickLogout.addEventListener('click', handleLogout);
+    });
+  </script>
+</body>
+</html>
