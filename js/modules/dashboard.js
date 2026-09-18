@@ -453,12 +453,19 @@ const DashboardModule = (() => {
           if (f.nivel_riesgo === 'Crítico') badge = 'badge-critico';
           else if (f.nivel_riesgo === 'En Proceso') badge = 'badge-proceso';
 
+          let evalName = f.evaluador;
+          if (!evalName && f.observaciones) {
+            const m = f.observaciones.match(/\[Evaluador:\s*([^\]]+)\]/i);
+            if (m) evalName = m[1].trim();
+          }
+
           return `
             <tr class="hover:bg-slate-50">
               <td class="py-2.5 font-medium text-slate-600 whitespace-nowrap">${f.fecha_evaluacion}</td>
               <td class="py-2.5">
                 <span class="font-bold text-slate-800 block truncate max-w-[140px]">${docName}</span>
                 <span class="text-[10px] text-slate-400 truncate block max-w-[140px]">${f.instituciones_educativas?.nombre_ie || ''}</span>
+                ${evalName ? `<span class="text-[10px] text-indigo-600 font-medium truncate block max-w-[140px]">Por: ${evalName}</span>` : ''}
               </td>
               <td class="py-2.5 text-center font-bold text-slate-800">${f.puntaje_total}</td>
               <td class="py-2.5 text-center">

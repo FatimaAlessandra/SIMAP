@@ -81,6 +81,8 @@ SIMAP/
     ├── script.sql                  # Script maestro completo
     ├── fase1_auth.sql              # Tablas de roles, usuarios, RLS y triggers
     ├── fase3_monitoreo.sql         # Tablas I.E., docentes, fichas, auditoría y RPC
+    ├── fase3_rubricas_update.sql   # Actualización a las 5 rúbricas oficiales MINEDU
+    ├── fase3_evaluador_update.sql  # Soporte para profesor evaluador en fichas y RPC
     └── fase4_capacitaciones.sql    # Tablas de capacitaciones y asistencias
 ```
 
@@ -100,7 +102,9 @@ const SUPABASE_ANON_KEY = 'TU_SUPABASE_ANON_KEY';
 En tu consola de Supabase ve al **SQL Editor** y ejecuta los scripts en este orden:
 1. `database/fase1_auth.sql`: Crea los roles, tabla de usuarios vinculada a `auth.users` y el trigger automático.
 2. `database/fase3_monitoreo.sql`: Crea los colegios, docentes, tabla de fichas, auditoría y la función RPC `registrar_ficha_y_auditar`.
-3. `database/fase4_capacitaciones.sql`: Crea las tablas de capacitaciones y asistencias con restricción única.
+3. `database/fase3_rubricas_update.sql`: Agrega las columnas `rubrica_1` a `rubrica_5` y actualiza la RPC.
+4. `database/fase3_evaluador_update.sql`: Agrega la columna `evaluador` e `id_docente_evaluador` y actualiza la RPC.
+5. `database/fase4_capacitaciones.sql`: Crea las tablas de capacitaciones y asistencias con restricción única.
 
 ---
 
@@ -171,16 +175,19 @@ Centro de inteligencia y consolidación de métricas.
 ---
 
 ### 6. `MonitoreoModule` (`js/modules/monitoreo.js`)
-Gestiona el registro de fichas pedagógicas, semaforización en tiempo real y el directorio de colegios y docentes.
+Gestiona la evaluación docente por 5 Rúbricas Oficiales de Aula MINEDU, asignación del profesor evaluador, semaforización y directorio.
 
-* **`render()`**: Retorna la interfaz modular con 3 pestañas: *Registrar Ficha*, *Ver Historial* y *Directorio de Colegios (I.E.)*, junto con modales de creación rápida.
-* **`loadInstituciones()`**: Carga los colegios desde `instituciones_educativas`.
-* **`loadDocentes()`**: Carga los docentes registrados en `docentes`.
-* **Gestión de Colegios (I.E.)**: Permite registrar nuevos colegios (Código Modular, Nombre, Distrito, Nivel Educativo) con validación de código único y actualización automática de combos.
-* **Gestión de Docentes**: Permite dar de alta nuevos profesores vinculados a su colegio correspondiente (DNI, Nombres, Apellidos, Especialidad, Cargo, Jornada).
-* **`updateLivePreview(score)`**: Actualiza el panel lateral en vivo según el puntaje ingresado (0 a 20), cambiando el color de fondo, badge y recomendación pedagógica.
-* **`loadHistorialFichas()`**: Consulta las últimas 25 evaluaciones con los datos vinculados del docente e I.E.
-* **Invocación RPC**: En el submit del formulario, invoca la función `registrar_ficha_y_auditar` en Supabase.
+* **`render()`**: Retorna la interfaz modular con 4 pestañas: *Evaluar por Rúbricas*, *Matriz de Rúbricas (I, II, III)*, *Ver Historial* y *Directorio de Colegios (I.E.)*.
+* **Filtros en Cascada**:
+  * **Distrito**: Filtra colegios de Chepén, Pacanga, Pueblo Nuevo, etc.
+  * **Institución Educativa**: Carga colegios y sincroniza su distrito.
+  * **Profesor Evaluador / Acompañante Pedagógico**: Permite elegir al usuario autenticado (Especialista/Directivo), directivos/docentes de la sede o red, o escribir un evaluador externo mediante el botón `+ Escribir otro nombre`.
+  * **Profesor a Evaluar**: Docente observado en aula, con validación de que no sea la misma persona que evalúa.
+* **Evaluación por 5 Rúbricas (1 a 4 puntos)**:
+  * Inicia limpio sin notas premarcadas.
+  * Muestra progreso interactivo *(X de 5 rúbricas evaluadas)* y activa el semáforo al completar las 5 rúbricas.
+* **Historial y Matriz con Evaluador**: Muestra en cada registro tanto el profesor evaluado como el evaluador que condujo la visita en aula.
+* **Invocación RPC**: En el submit del formulario, invoca la función `registrar_ficha_y_auditar` en Supabase con auditoría automática.
 
 ---
 

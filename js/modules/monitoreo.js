@@ -134,7 +134,7 @@ const MonitoreoModule = (() => {
     const supabase = getSupabase();
     if (!supabase) return [];
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('fichas_monitoreo')
         .select(`
           id_ficha,
@@ -150,12 +150,39 @@ const MonitoreoModule = (() => {
           observaciones,
           id_docente,
           created_at,
+          evaluador,
           docentes ( id_docente, nombres, apellido_paterno, apellido_materno, dni, especialidad ),
           instituciones_educativas ( id_ie, nombre_ie, distrito )
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      // Fallback si la columna evaluador aún no ha sido migrada en Supabase
+      if (error && error.message && error.message.includes('evaluador')) {
+        const fallbackRes = await supabase
+          .from('fichas_monitoreo')
+          .select(`
+            id_ficha,
+            nro_monitoreo,
+            rubrica_1,
+            rubrica_2,
+            rubrica_3,
+            rubrica_4,
+            rubrica_5,
+            fecha_evaluacion,
+            puntaje_total,
+            nivel_riesgo,
+            observaciones,
+            id_docente,
+            created_at,
+            docentes ( id_docente, nombres, apellido_paterno, apellido_materno, dni, especialidad ),
+            instituciones_educativas ( id_ie, nombre_ie, distrito )
+          `)
+          .order('created_at', { ascending: false });
+        data = fallbackRes.data;
+      } else if (error) {
+        throw error;
+      }
+
       fichasCache = data || [];
       return fichasCache;
     } catch (err) {
@@ -253,10 +280,35 @@ const MonitoreoModule = (() => {
                   </select>
                 </div>
 
-                <!-- Fila 2: Docente a Evaluar -->
+                <!-- Fila 2: Profesor Evaluador / Acompañante Pedagógico -->
                 <div>
                   <div class="flex items-center justify-between mb-1.5">
-                    <label for="select-docente" class="form-label mb-0 text-xs font-semibold">Docente a Evaluar *</label>
+                    <label for="select-evaluador" class="form-label mb-0 text-xs font-semibold flex items-center gap-1.5 text-slate-800">
+                      <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+                      <span>Profesor Evaluador / Acompañante Pedagógico *</span>
+                    </label>
+                    <button type="button" id="btn-toggle-evaluador-manual" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 hover:underline">
+                      <span>+ Escribir otro nombre</span>
+                    </button>
+                  </div>
+                  <div id="wrapper-evaluador-select">
+                    <select id="select-evaluador" class="form-input !pl-3 text-sm">
+                      <option value="">-- Seleccionar Profesor Evaluador --</option>
+                    </select>
+                  </div>
+                  <div id="wrapper-evaluador-manual" class="hidden mt-1.5 space-y-1">
+                    <input type="text" id="input-evaluador-manual" class="form-input !pl-3 text-sm" placeholder="Ej: Mg. Carlos Morales Soto (Especialista UGEL / Directivo)">
+                    <span class="text-[11px] text-slate-400 block">Escribe el nombre del docente o directivo que realiza la evaluación en aula.</span>
+                  </div>
+                </div>
+
+                <!-- Fila 3: Docente a Evaluar -->
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <label for="select-docente" class="form-label mb-0 text-xs font-semibold flex items-center gap-1.5 text-slate-800">
+                      <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                      <span>Profesor a Evaluar (Observado en Aula) *</span>
+                    </label>
                     <button type="button" id="btn-abrir-modal-docente" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                       <span>+ Agregar Docente</span>
@@ -504,6 +556,7 @@ const MonitoreoModule = (() => {
                   <th class="py-3 px-3">Fecha</th>
                   <th class="py-3 px-3 text-center">Ronda</th>
                   <th class="py-3 px-4">Docente Evaluado</th>
+                  <th class="py-3 px-4">Profesor / Monitor Evaluador</th>
                   <th class="py-3 px-4">I.E.</th>
                   <th class="py-3 px-3 text-center">R1</th>
                   <th class="py-3 px-3 text-center">R2</th>
@@ -516,7 +569,7 @@ const MonitoreoModule = (() => {
               </thead>
               <tbody id="tabla-fichas-body" class="divide-y divide-slate-100 text-xs">
                 <tr>
-                  <td colspan="11" class="py-8 text-center text-slate-400">Cargando fichas...</td>
+                  <td colspan="12" class="py-8 text-center text-slate-400">Cargando fichas...</td>
                 </tr>
               </tbody>
             </table>
@@ -833,6 +886,7 @@ const MonitoreoModule = (() => {
     if (colegiosFiltrados.length === 0) {
       selectIE.innerHTML = '<option value="">No hay colegios en este distrito. ¡Haz clic en + Agregar Colegio!</option>';
       actualizarComboDocentes(null);
+      actualizarComboEvaluadores(null);
       return;
     }
 
@@ -847,8 +901,10 @@ const MonitoreoModule = (() => {
     if (ieIdToSelect && colegiosFiltrados.some(ie => ie.id_ie === ieIdToSelect)) {
       selectIE.value = ieIdToSelect;
       actualizarComboDocentes(ieIdToSelect);
+      actualizarComboEvaluadores(ieIdToSelect);
     } else {
       actualizarComboDocentes(null);
+      actualizarComboEvaluadores(null);
     }
   };
 
@@ -878,7 +934,62 @@ const MonitoreoModule = (() => {
   };
 
   /**
-   * Llena los combos de Distrito, Instituciones y Docentes
+   * Actualiza las opciones del combo de Profesor Evaluador / Acompañante
+   */
+  const actualizarComboEvaluadores = async (ieId = null, selectEvaluadorId = null) => {
+    const selectEvaluador = document.getElementById('select-evaluador');
+    if (!selectEvaluador) return;
+
+    let userName = 'Especialista UGEL';
+    try {
+      const session = await window.SIMAP?.Auth?.getSession();
+      const userMeta = session?.user?.user_metadata || {};
+      userName = userMeta.full_name || userMeta.nombres || session?.user?.email?.split('@')[0] || 'Especialista UGEL';
+    } catch (e) {
+      console.warn('No se pudo obtener usuario de sesión:', e);
+    }
+
+    let html = `
+      <optgroup label="Usuario en Sesión (Tú)">
+        <option value="USER:${userName}" ${(!selectEvaluadorId || selectEvaluadorId.startsWith('USER:')) ? 'selected' : ''}>
+          ${userName} (Especialista UGEL / Directivo Conectado)
+        </option>
+      </optgroup>
+    `;
+
+    if (ieId) {
+      const docentesIE = docentesCache.filter(d => d.id_ie === ieId);
+      if (docentesIE.length > 0) {
+        html += `
+          <optgroup label="Directivos y Docentes de esta Institución">
+            ${docentesIE.map(d => `
+              <option value="DOC:${d.id_docente}:${d.apellido_paterno} ${d.apellido_materno}, ${d.nombres}" ${selectEvaluadorId === d.id_docente ? 'selected' : ''}>
+                ${d.apellido_paterno} ${d.apellido_materno}, ${d.nombres} - ${d.cargo || 'Profesor'} (${d.especialidad || 'General'})
+              </option>
+            `).join('')}
+          </optgroup>
+        `;
+      }
+    }
+
+    const otrosDocentes = ieId ? docentesCache.filter(d => d.id_ie !== ieId) : docentesCache;
+    if (otrosDocentes.length > 0) {
+      html += `
+        <optgroup label="Docentes de Otras Instituciones / Red UGEL">
+          ${otrosDocentes.map(d => `
+            <option value="DOC:${d.id_docente}:${d.apellido_paterno} ${d.apellido_materno}, ${d.nombres}" ${selectEvaluadorId === d.id_docente ? 'selected' : ''}>
+              ${d.apellido_paterno} ${d.apellido_materno}, ${d.nombres} - ${d.cargo || 'Profesor'}
+            </option>
+          `).join('')}
+        </optgroup>
+      `;
+    }
+
+    selectEvaluador.innerHTML = html;
+  };
+
+  /**
+   * Llena los combos de Distrito, Instituciones, Evaluadores y Docentes
    */
   const populateCombos = async (distritoOrOpts = null, selectedIeIdPre = null, selectedDocenteIdPre = null) => {
     const selectDistrito = document.getElementById('select-distrito');
@@ -930,11 +1041,13 @@ const MonitoreoModule = (() => {
     // 2. Población del combo de Instituciones con filtro si corresponde
     actualizarComboIE(selectedDistrito || '', selectedIe);
 
-    // 3. Población del combo de Docentes
+    // 3. Población del combo de Docentes y Evaluadores
     if (selectedIe) {
       actualizarComboDocentes(selectedIe, selectedDoc);
+      await actualizarComboEvaluadores(selectedIe);
     } else {
       actualizarComboDocentes(null);
+      await actualizarComboEvaluadores(null);
     }
 
     // 4. Modal de nuevo docente: combo de colegios
@@ -974,14 +1087,24 @@ const MonitoreoModule = (() => {
       const fMon2 = fichasDocente.find(f => f.nro_monitoreo === 'II');
       const fMon3 = fichasDocente.find(f => f.nro_monitoreo === 'III');
 
-      // Último semáforo registrado
+      // Último semáforo registrado y evaluador
       const ultimaFicha = fichasDocente[0];
       let semaforoBadge = '<span class="text-slate-300 italic text-[11px]">Sin evaluar</span>';
+      let evaluadorSubtext = '';
       if (ultimaFicha) {
         let badgeClass = 'badge-satisfactorio';
         if (ultimaFicha.nivel_riesgo === 'Crítico') badgeClass = 'badge-critico';
         else if (ultimaFicha.nivel_riesgo === 'En Proceso') badgeClass = 'badge-proceso';
         semaforoBadge = `<span class="badge-semaforo ${badgeClass} text-[10px]">${ultimaFicha.nivel_riesgo} (${ultimaFicha.puntaje_total} pts)</span>`;
+
+        let evalName = ultimaFicha.evaluador;
+        if (!evalName && ultimaFicha.observaciones) {
+          const m = ultimaFicha.observaciones.match(/\[Evaluador:\s*([^\]]+)\]/i);
+          if (m) evalName = m[1].trim();
+        }
+        if (evalName) {
+          evaluadorSubtext = `<span class="block text-[10px] text-indigo-600 font-medium mt-0.5 truncate max-w-[180px]" title="Evaluador: ${evalName}">Eval: ${evalName}</span>`;
+        }
       }
 
       // Renderizar 5 filas por docente (una por cada rúbrica I, II, III, IV, V)
@@ -1000,6 +1123,7 @@ const MonitoreoModule = (() => {
               <td rowspan="5" class="py-3 px-4 font-bold text-slate-900 border-r border-slate-200 align-middle text-left">
                 ${doc.nombres} ${doc.apellido_paterno}
                 <span class="block text-[10px] text-slate-400 font-normal">DNI: ${doc.dni || 'S/D'} &bull; ${doc.especialidad || doc.cargo}</span>
+                ${evaluadorSubtext}
               </td>
               <td class="py-2 px-3 font-bold text-blue-700 bg-blue-50/30 border-r border-slate-200">${romanos[r - 1]}</td>
               <td class="py-2 px-4 border-r border-slate-200 font-bold ${val1 !== '-' ? 'text-slate-800' : 'text-slate-300'}">${val1}</td>
@@ -1034,11 +1158,11 @@ const MonitoreoModule = (() => {
     const tbody = document.getElementById('tabla-fichas-body');
     if (!tbody) return;
 
-    tbody.innerHTML = `<tr><td colspan="11" class="py-8 text-center text-slate-400">Consultando Supabase...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" class="py-8 text-center text-slate-400">Consultando Supabase...</td></tr>`;
     const fichas = await loadHistorialFichas();
 
     if (fichas.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="11" class="py-8 text-center text-slate-400">No hay fichas registradas aún.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="12" class="py-8 text-center text-slate-400">No hay fichas registradas aún.</td></tr>`;
       return;
     }
 
@@ -1046,6 +1170,13 @@ const MonitoreoModule = (() => {
       const docName = f.docentes ? `${f.docentes.apellido_paterno} ${f.docentes.nombres}` : 'Docente';
       const ieName = f.instituciones_educativas?.nombre_ie || 'I.E. General';
       
+      let evaluadorName = f.evaluador;
+      if (!evaluadorName && f.observaciones) {
+        const match = f.observaciones.match(/\[Evaluador:\s*([^\]]+)\]/i);
+        if (match) evaluadorName = match[1].trim();
+      }
+      if (!evaluadorName) evaluadorName = 'Especialista UGEL';
+
       let badgeClass = 'badge-satisfactorio';
       if (f.nivel_riesgo === 'Crítico') badgeClass = 'badge-critico';
       else if (f.nivel_riesgo === 'En Proceso') badgeClass = 'badge-proceso';
@@ -1059,6 +1190,12 @@ const MonitoreoModule = (() => {
             </span>
           </td>
           <td class="py-2.5 px-4 font-bold text-slate-900">${docName}</td>
+          <td class="py-2.5 px-4 text-xs font-semibold text-indigo-700 whitespace-nowrap">
+            <span class="inline-flex items-center gap-1 bg-indigo-50 px-2.5 py-0.5 rounded border border-indigo-100/80">
+              <svg class="w-3 h-3 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+              <span>${evaluadorName}</span>
+            </span>
+          </td>
           <td class="py-2.5 px-4 text-slate-500 max-w-[150px] truncate" title="${ieName}">${ieName}</td>
           <td class="py-2.5 px-3 text-center font-bold text-slate-700 bg-slate-50/50">${f.rubrica_1 || '-'}</td>
           <td class="py-2.5 px-3 text-center font-bold text-slate-700 bg-slate-50/50">${f.rubrica_2 || '-'}</td>
@@ -1182,6 +1319,28 @@ const MonitoreoModule = (() => {
         }
       }
       actualizarComboDocentes(ieId);
+      actualizarComboEvaluadores(ieId);
+    });
+
+    // Toggle entre selector y modo manual para el Profesor Evaluador
+    const btnToggleEvaluador = document.getElementById('btn-toggle-evaluador-manual');
+    const wrapperSelectEval = document.getElementById('wrapper-evaluador-select');
+    const wrapperManualEval = document.getElementById('wrapper-evaluador-manual');
+    const inputManualEval = document.getElementById('input-evaluador-manual');
+    const selectEvaluador = document.getElementById('select-evaluador');
+
+    btnToggleEvaluador?.addEventListener('click', () => {
+      const isHidden = wrapperManualEval?.classList.contains('hidden');
+      if (isHidden) {
+        wrapperManualEval?.classList.remove('hidden');
+        wrapperSelectEval?.classList.add('hidden');
+        btnToggleEvaluador.textContent = '← Seleccionar de la lista';
+        inputManualEval?.focus();
+      } else {
+        wrapperManualEval?.classList.add('hidden');
+        wrapperSelectEval?.classList.remove('hidden');
+        btnToggleEvaluador.textContent = '+ Escribir otro nombre';
+      }
     });
 
     // 3. Modales de Creación Rápida
@@ -1333,8 +1492,42 @@ const MonitoreoModule = (() => {
         const submitBtn = document.getElementById('btn-guardar-ficha');
         const originalBtnHtml = submitBtn?.innerHTML;
 
+        // Obtener el Profesor Evaluador
+        let evaluadorNombre = '';
+        let idDocenteEvaluador = null;
+
+        const isManualEval = wrapperManualEval && !wrapperManualEval.classList.contains('hidden');
+        if (isManualEval) {
+          evaluadorNombre = inputManualEval?.value.trim() || '';
+          if (!evaluadorNombre) {
+            window.SIMAP?.Notification?.warning('Por favor ingresa el nombre del profesor o especialista evaluador.');
+            inputManualEval?.focus();
+            return;
+          }
+        } else {
+          const evalVal = selectEvaluador?.value || '';
+          if (!evalVal) {
+            window.SIMAP?.Notification?.warning('Por favor selecciona el profesor o especialista evaluador.');
+            return;
+          }
+          if (evalVal.startsWith('USER:')) {
+            evaluadorNombre = evalVal.replace('USER:', '').trim();
+          } else if (evalVal.startsWith('DOC:')) {
+            const parts = evalVal.split(':');
+            idDocenteEvaluador = parts[1];
+            evaluadorNombre = parts.slice(2).join(':').trim();
+          } else {
+            evaluadorNombre = evalVal;
+          }
+        }
+
         if (!idIE || !idDocente) {
-          window.SIMAP?.Notification?.warning('Por favor selecciona la Institución Educativa y el Docente a evaluar.');
+          window.SIMAP?.Notification?.warning('Por favor selecciona la Institución Educativa y el Profesor a evaluar.');
+          return;
+        }
+
+        if (idDocenteEvaluador && idDocenteEvaluador === idDocente) {
+          window.SIMAP?.Notification?.warning('El profesor evaluador no puede ser la misma persona que está siendo evaluada en aula.');
           return;
         }
 
@@ -1378,32 +1571,77 @@ const MonitoreoModule = (() => {
         `;
 
         try {
-          // Invocar la función RPC con las 5 rúbricas y el N° de monitoreo
-          const { data, error } = await supabase.rpc('registrar_ficha_y_auditar', {
-            p_id_usuario: session.user.id,
-            p_id_docente: idDocente,
-            p_id_ie: idIE,
-            p_fecha: fecha,
-            p_puntaje: total,
-            p_obs: observaciones,
-            p_r1: r1,
-            p_r2: r2,
-            p_r3: r3,
-            p_r4: r4,
-            p_r5: r5,
-            p_nro_monitoreo: nroMonitoreo
-          });
+          const obsConEvaluador = evaluadorNombre 
+            ? `[Evaluador: ${evaluadorNombre}] ${observaciones}`
+            : observaciones;
 
-          if (error) throw error;
+          let data = null;
+
+          // Intento 1: Llamar RPC con soporte de evaluador
+          try {
+            const res = await supabase.rpc('registrar_ficha_y_auditar', {
+              p_id_usuario: session.user.id,
+              p_id_docente: idDocente,
+              p_id_ie: idIE,
+              p_fecha: fecha,
+              p_puntaje: total,
+              p_obs: obsConEvaluador,
+              p_r1: r1,
+              p_r2: r2,
+              p_r3: r3,
+              p_r4: r4,
+              p_r5: r5,
+              p_nro_monitoreo: nroMonitoreo,
+              p_evaluador: evaluadorNombre,
+              p_id_docente_evaluador: idDocenteEvaluador
+            });
+            if (res.error) throw res.error;
+            data = res.data;
+          } catch (rpcErr) {
+            // Fallback al RPC estándar de 12 parámetros si la BD aún no tiene la firma de 14
+            console.warn('Fallback a RPC estándar (12 args):', rpcErr.message);
+            const resFallback = await supabase.rpc('registrar_ficha_y_auditar', {
+              p_id_usuario: session.user.id,
+              p_id_docente: idDocente,
+              p_id_ie: idIE,
+              p_fecha: fecha,
+              p_puntaje: total,
+              p_obs: obsConEvaluador,
+              p_r1: r1,
+              p_r2: r2,
+              p_r3: r3,
+              p_r4: r4,
+              p_r5: r5,
+              p_nro_monitoreo: nroMonitoreo
+            });
+            if (resFallback.error) throw resFallback.error;
+            data = resFallback.data;
+          }
+
+          // Si la tabla fichas_monitoreo tiene la columna evaluador, actualizarla directamente
+          if (data?.id_ficha && evaluadorNombre) {
+            try {
+              await supabase.from('fichas_monitoreo').update({
+                evaluador: evaluadorNombre,
+                id_docente_evaluador: idDocenteEvaluador
+              }).eq('id_ficha', data.id_ficha);
+            } catch (updateColErr) {
+              console.log('Nota: columna evaluador no presente aún en tabla física.');
+            }
+          }
 
           const nivelCalculado = data?.nivel_riesgo || (total < 12 ? 'Crítico' : (total < 16 ? 'En Proceso' : 'Satisfactorio'));
           
           window.SIMAP?.Notification?.success(
-            `¡${nroMonitoreo} Monitoreo registrado! Puntaje por rúbricas: <strong>${total} pts</strong> (Semáforo: <strong>${nivelCalculado}</strong>).`
+            `¡${nroMonitoreo} Monitoreo registrado! Docente evaluado con: <strong>${total} pts</strong> (Semáforo: <strong>${nivelCalculado}</strong>). Evaluador: <em>${evaluadorNombre}</em>.`
           );
 
           // Resetear el formulario y las rúbricas
           document.getElementById('input-observaciones').value = '';
+          if (inputManualEval) inputManualEval.value = '';
+          if (wrapperManualEval && !wrapperManualEval.classList.contains('hidden')) {
+            btnToggleEvaluador?.click();
+          }
           document.querySelectorAll('.rubrica-input').forEach(input => { input.checked = false; });
           updateLivePreviewFromRubricas();
           submitBtn.disabled = false;
