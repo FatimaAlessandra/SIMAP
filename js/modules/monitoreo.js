@@ -370,32 +370,32 @@ const MonitoreoModule = (() => {
 
                       <!-- Selector de Nivel (1 a 4) -->
                       <div class="grid grid-cols-4 gap-2 pt-2 border-t border-slate-100">
-                        <label class="cursor-pointer">
-                          <input type="radio" name="rubrica_${r.id}" value="1" class="peer sr-only rubrica-input" data-rubrica-num="${r.id}">
+                        <label class="relative block cursor-pointer select-none">
+                          <input type="radio" name="rubrica_${r.id}" value="1" class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 rubrica-input" data-rubrica-num="${r.id}">
                           <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700 hover:bg-slate-50 transition-all">
                             <span class="block text-xs font-extrabold">Nivel I</span>
                             <span class="text-[10px] text-slate-500 block">1 pt</span>
                           </div>
                         </label>
 
-                        <label class="cursor-pointer">
-                          <input type="radio" name="rubrica_${r.id}" value="2" class="peer sr-only rubrica-input" data-rubrica-num="${r.id}">
+                        <label class="relative block cursor-pointer select-none">
+                          <input type="radio" name="rubrica_${r.id}" value="2" class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 rubrica-input" data-rubrica-num="${r.id}">
                           <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700 hover:bg-slate-50 transition-all">
                             <span class="block text-xs font-extrabold">Nivel II</span>
                             <span class="text-[10px] text-slate-500 block">2 pts</span>
                           </div>
                         </label>
 
-                        <label class="cursor-pointer">
-                          <input type="radio" name="rubrica_${r.id}" value="3" class="peer sr-only rubrica-input" data-rubrica-num="${r.id}">
+                        <label class="relative block cursor-pointer select-none">
+                          <input type="radio" name="rubrica_${r.id}" value="3" class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 rubrica-input" data-rubrica-num="${r.id}">
                           <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 hover:bg-slate-50 transition-all">
                             <span class="block text-xs font-extrabold">Nivel III</span>
                             <span class="text-[10px] text-slate-500 block">3 pts</span>
                           </div>
                         </label>
 
-                        <label class="cursor-pointer">
-                          <input type="radio" name="rubrica_${r.id}" value="4" class="peer sr-only rubrica-input" data-rubrica-num="${r.id}">
+                        <label class="relative block cursor-pointer select-none">
+                          <input type="radio" name="rubrica_${r.id}" value="4" class="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 rubrica-input" data-rubrica-num="${r.id}">
                           <div class="text-center py-2 px-1 rounded-lg border border-slate-200 peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700 hover:bg-slate-50 transition-all">
                             <span class="block text-xs font-extrabold">Nivel IV</span>
                             <span class="text-[10px] text-slate-500 block">4 pts</span>
@@ -793,83 +793,91 @@ const MonitoreoModule = (() => {
    * Actualiza el cuadro de semaforización y etiquetas en tiempo real al cambiar cualquier rúbrica
    */
   const updateLivePreviewFromRubricas = () => {
-    const { r1, r2, r3, r4, r5, total, count, allSelected } = getSelectedRubricas();
+    try {
+      const { r1, r2, r3, r4, r5, total, count, allSelected } = getSelectedRubricas();
 
-    const levelInfo = {
-      1: { text: 'Nivel I (1 pt)', class: 'bg-red-100 text-red-700', miniClass: 'text-red-600 font-bold' },
-      2: { text: 'Nivel II (2 pts)', class: 'bg-amber-100 text-amber-700', miniClass: 'text-amber-600 font-bold' },
-      3: { text: 'Nivel III (3 pts)', class: 'bg-blue-100 text-blue-700', miniClass: 'text-blue-600 font-bold' },
-      4: { text: 'Nivel IV (4 pts)', class: 'bg-emerald-100 text-emerald-700', miniClass: 'text-emerald-600 font-bold' }
-    };
+      const levelInfo = {
+        1: { text: 'Nivel I (1 pt)', class: 'bg-red-100 text-red-700', miniClass: 'text-red-600 font-bold' },
+        2: { text: 'Nivel II (2 pts)', class: 'bg-amber-100 text-amber-700', miniClass: 'text-amber-600 font-bold' },
+        3: { text: 'Nivel III (3 pts)', class: 'bg-blue-100 text-blue-700', miniClass: 'text-blue-600 font-bold' },
+        4: { text: 'Nivel IV (4 pts)', class: 'bg-emerald-100 text-emerald-700', miniClass: 'text-emerald-600 font-bold' }
+      };
 
-    const rubricaValues = [r1, r2, r3, r4, r5];
+      const rubricaValues = [r1, r2, r3, r4, r5];
 
-    // Actualizar etiquetas individuales en las cards y en el desglose lateral
-    for (let i = 1; i <= 5; i++) {
-      const val = rubricaValues[i - 1];
-      const lbl = document.getElementById(`label-score-r${i}`);
-      const mini = document.getElementById(`mini-score-${i}`);
+      // Actualizar etiquetas individuales en las cards y en el desglose lateral
+      for (let i = 1; i <= 5; i++) {
+        const val = rubricaValues[i - 1];
+        const lbl = document.getElementById(`label-score-r${i}`);
+        const mini = document.getElementById(`mini-score-${i}`);
 
-      if (val && levelInfo[val]) {
-        if (lbl) {
-          lbl.textContent = levelInfo[val].text;
-          lbl.className = `text-xs font-bold self-end sm:self-center px-2.5 py-0.5 rounded transition-colors ${levelInfo[val].class}`;
+        if (val && levelInfo[val]) {
+          if (lbl) {
+            lbl.textContent = levelInfo[val].text;
+            lbl.className = `text-xs font-bold self-end sm:self-center px-2.5 py-0.5 rounded transition-colors ${levelInfo[val].class}`;
+          }
+          if (mini) {
+            mini.textContent = `${val} pts`;
+            mini.className = levelInfo[val].miniClass;
+          }
+        } else {
+          if (lbl) {
+            lbl.textContent = 'Sin calificar';
+            lbl.className = 'text-xs font-bold text-slate-400 self-end sm:self-center bg-slate-100 px-2.5 py-0.5 rounded transition-colors';
+          }
+          if (mini) {
+            mini.textContent = '--';
+            mini.className = 'text-slate-400 font-normal';
+          }
         }
-        if (mini) {
-          mini.textContent = `${val} pts`;
-          mini.className = levelInfo[val].miniClass;
+      }
+
+      // Actualizar caja del semáforo lateral
+      const previewBox = document.getElementById('preview-semaforo-box');
+      const badge = document.getElementById('preview-badge');
+      const scoreText = document.getElementById('preview-puntaje');
+      const subtext = document.getElementById('preview-total-subtext');
+      const mensaje = document.getElementById('preview-mensaje');
+
+      if (!previewBox || !badge || !scoreText) return;
+
+      if (!allSelected) {
+        badge.textContent = count === 0 ? 'Sin calificar' : `En evaluación (${count}/5)`;
+        badge.className = 'badge-semaforo bg-slate-200 text-slate-700 text-sm px-4 py-1.5 shadow-sm';
+        scoreText.textContent = count === 0 ? '-- pts' : `${total} pts`;
+        if (subtext) subtext.textContent = `(${count} de 5 rúbricas evaluadas)`;
+        if (mensaje) {
+          mensaje.textContent = count === 0 
+            ? 'Asigna el nivel (1 al 4) en cada una de las 5 rúbricas para calcular el semáforo en vivo.' 
+            : `Faltan calificar ${5 - count} rúbrica(s) para obtener el semáforo final.`;
+          mensaje.className = 'text-xs text-slate-500 mt-3 font-medium';
         }
+        previewBox.className = 'p-6 rounded-xl border border-slate-200 bg-slate-50 transition-all duration-300';
       } else {
-        if (lbl) {
-          lbl.textContent = 'Sin calificar';
-          lbl.className = 'text-xs font-bold text-slate-400 self-end sm:self-center bg-slate-100 px-2.5 py-0.5 rounded transition-colors';
+        // Cuando las 5 rúbricas están seleccionadas:
+        const info = getRiskInfo(total);
+        badge.textContent = info.nivel;
+        badge.className = `badge-semaforo ${info.clase} text-sm px-4 py-1.5 shadow-sm`;
+        scoreText.textContent = `${total} pts`;
+        if (subtext) subtext.textContent = '(De 20 puntos posibles)';
+        if (mensaje) {
+          mensaje.textContent = info.mensaje;
+          let msgColor = 'text-slate-600';
+          if (total < 12) msgColor = 'text-red-700';
+          else if (total < 16) msgColor = 'text-amber-800';
+          else msgColor = 'text-emerald-700';
+          mensaje.className = `text-xs mt-3 font-medium ${msgColor}`;
         }
-        if (mini) {
-          mini.textContent = '--';
-          mini.className = 'text-slate-400 font-normal';
-        }
+        previewBox.className = `p-6 rounded-xl border transition-all duration-300 ${info.bg}`;
       }
-    }
 
-    // Actualizar caja del semáforo lateral
-    const previewBox = document.getElementById('preview-semaforo-box');
-    const badge = document.getElementById('preview-badge');
-    const scoreText = document.getElementById('preview-puntaje');
-    const subtext = document.getElementById('preview-total-subtext');
-    const mensaje = document.getElementById('preview-mensaje');
-
-    if (!previewBox || !badge || !scoreText) return;
-
-    if (!allSelected) {
-      badge.textContent = count === 0 ? 'Sin calificar' : `En evaluación (${count}/5)`;
-      badge.className = 'badge-semaforo bg-slate-200 text-slate-700 text-sm px-4 py-1.5 shadow-sm';
-      scoreText.textContent = count === 0 ? '-- pts' : `${total} pts`;
-      if (subtext) subtext.textContent = `(${count} de 5 rúbricas evaluadas)`;
-      if (mensaje) {
-        mensaje.textContent = count === 0 
-          ? 'Asigna el nivel (1 al 4) en cada una de las 5 rúbricas para calcular el semáforo en vivo.' 
-          : `Faltan calificar ${5 - count} rúbrica(s) para obtener el semáforo final.`;
-        mensaje.className = 'text-xs text-slate-500 mt-3 font-medium';
+      // Asegurar que la ventana raíz permanezca fija
+      if (window.scrollY > 0) {
+        window.scrollTo(0, 0);
       }
-      previewBox.className = 'p-6 rounded-xl border border-slate-200 bg-slate-50 transition-all duration-300';
-      return;
+    } catch (err) {
+      console.warn('Error en cálculo de rúbricas:', err);
     }
-
-    // Cuando las 5 rúbricas están seleccionadas:
-    const info = getRiskInfo(total);
-    badge.textContent = info.nivel;
-    badge.className = `badge-semaforo ${info.clase} text-sm px-4 py-1.5 shadow-sm`;
-    scoreText.textContent = `${total} pts`;
-    if (subtext) subtext.textContent = '(De 20 puntos posibles)';
-    if (mensaje) {
-      mensaje.textContent = info.mensaje;
-      let msgColor = 'text-slate-600';
-      if (total < 12) msgColor = 'text-red-700';
-      else if (total < 16) msgColor = 'text-amber-800';
-      else msgColor = 'text-emerald-700';
-      mensaje.className = `text-xs mt-3 font-medium ${msgColor}`;
-    }
-    previewBox.className = `p-6 rounded-xl border transition-all duration-300 ${info.bg}`;
   };
 
   /**
@@ -1514,7 +1522,12 @@ const MonitoreoModule = (() => {
 
     // 6. Escuchar cambios en los radio buttons de las 5 rúbricas
     document.querySelectorAll('.rubrica-input').forEach(input => {
-      input.addEventListener('change', updateLivePreviewFromRubricas);
+      input.addEventListener('change', () => {
+        updateLivePreviewFromRubricas();
+        if (window.scrollY > 0) {
+          window.scrollTo(0, 0);
+        }
+      });
     });
 
     // 7. Envío del Formulario de Monitoreo por Rúbricas
@@ -1582,15 +1595,26 @@ const MonitoreoModule = (() => {
             `Debes calificar las 5 rúbricas del docente. Has calificado ${count} de 5 rúbricas.`
           );
 
-          // Hacer scroll suave hacia la primera rúbrica pendiente
+          // Hacer scroll suave hacia la primera rúbrica pendiente dentro del contenedor interno #app-content
           for (let i = 1; i <= 5; i++) {
             if (!document.querySelector(`input[name="rubrica_${i}"]:checked`)) {
               const card = document.querySelector(`[data-rubrica="${i}"]`);
-              card?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              card?.classList.add('ring-2', 'ring-blue-500');
-              setTimeout(() => card?.classList.remove('ring-2', 'ring-blue-500'), 2500);
+              if (card) {
+                const appContent = document.getElementById('app-content');
+                if (appContent) {
+                  const cardRect = card.getBoundingClientRect();
+                  const containerRect = appContent.getBoundingClientRect();
+                  const targetScrollTop = appContent.scrollTop + (cardRect.top - containerRect.top) - 100;
+                  appContent.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+                }
+                card.classList.add('ring-2', 'ring-blue-500');
+                setTimeout(() => card.classList.remove('ring-2', 'ring-blue-500'), 2500);
+              }
               break;
             }
+          }
+          if (window.scrollY > 0) {
+            window.scrollTo(0, 0);
           }
           return;
         }

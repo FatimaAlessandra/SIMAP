@@ -65,11 +65,16 @@ const RouterModule = (() => {
     if (hash === '#/' || hash === '#' || hash === '') {
       hash = '#/dashboard';
     }
+    // Normalizar hash sin barra diagonal (ej: #monitoreo -> #/monitoreo)
+    let normalizedHash = hash;
+    if (normalizedHash.startsWith('#') && !normalizedHash.startsWith('#/')) {
+      normalizedHash = '#/' + normalizedHash.substring(1);
+    }
 
-    const route = routes[hash] || routes['#/dashboard'];
+    const route = routes[normalizedHash] || routes[hash] || routes['#/dashboard'];
 
     if (route && typeof route.handler === 'function') {
-      updateActiveSidebarLink(hash);
+      updateActiveSidebarLink(normalizedHash);
       updateHeaderTitle(route.title);
 
       // Efecto visual de transición
