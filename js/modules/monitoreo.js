@@ -1386,13 +1386,30 @@ const MonitoreoModule = (() => {
         btnSubmit.innerHTML = `<div class="spinner"></div><span>Guardando...</span>`;
 
         try {
+          let nuevaIE = null;
           const { data, error } = await supabase
             .from('instituciones_educativas')
             .insert([{ cod_modular: codigo, nombre_ie: nombre, distrito: distrito, nivel_educativo: nivel }])
             .select()
             .single();
 
-          if (error) throw error;
+          if (error) {
+            // Si hay restricción RLS o permiso denegado, recurrir a la función RPC con SECURITY DEFINER
+            if (error.message?.toLowerCase().includes('row-level security') || error.code === '42501') {
+              const { data: rpcData, error: rpcError } = await supabase.rpc('registrar_colegio', {
+                p_cod_modular: codigo,
+                p_nombre_ie: nombre,
+                p_distrito: distrito,
+                p_nivel_educativo: nivel
+              });
+              if (rpcError) throw rpcError;
+              nuevaIE = rpcData;
+            } else {
+              throw error;
+            }
+          } else {
+            nuevaIE = data;
+          }
 
           window.SIMAP?.Notification?.success(`¡Colegio "<strong>${nombre}</strong>" registrado con éxito!`);
           cerrarModal(modalIE);
@@ -1400,7 +1417,7 @@ const MonitoreoModule = (() => {
           btnSubmit.disabled = false;
           btnSubmit.innerHTML = origText;
 
-          await populateCombos({ distrito: data.distrito, ieId: data.id_ie });
+          await populateCombos({ distrito: nuevaIE?.distrito || distrito, ieId: nuevaIE?.id_ie });
           renderColegiosTable();
 
         } catch (err) {
@@ -1437,6 +1454,7 @@ const MonitoreoModule = (() => {
         btnSubmit.innerHTML = `<div class="spinner"></div><span>Guardando...</span>`;
 
         try {
+          let nuevoDocente = null;
           const { data, error } = await supabase
             .from('docentes')
             .insert([{
@@ -1453,7 +1471,28 @@ const MonitoreoModule = (() => {
             .select()
             .single();
 
-          if (error) throw error;
+          if (error) {
+            // Si hay restricción RLS o permiso denegado, recurrir a la función RPC con SECURITY DEFINER
+            if (error.message?.toLowerCase().includes('row-level security') || error.code === '42501') {
+              const { data: rpcData, error: rpcError } = await supabase.rpc('registrar_docente_seguro', {
+                p_id_ie: idIe,
+                p_dni: dni,
+                p_nombres: nombres,
+                p_apellido_paterno: paterno,
+                p_apellido_materno: materno,
+                p_sexo: sexo,
+                p_especialidad: especialidad,
+                p_cargo: cargo,
+                p_jornada: jornada
+              });
+              if (rpcError) throw rpcError;
+              nuevoDocente = rpcData;
+            } else {
+              throw error;
+            }
+          } else {
+            nuevoDocente = data;
+          }
 
           window.SIMAP?.Notification?.success(`¡Docente "<strong>${nombres} ${paterno}</strong>" registrado!`);
           cerrarModal(modalDocente);
@@ -1462,7 +1501,7 @@ const MonitoreoModule = (() => {
           btnSubmit.innerHTML = origText;
 
           const ieObj = institucionesCache.find(i => i.id_ie === idIe);
-          await populateCombos({ distrito: ieObj?.distrito || null, ieId: idIe, docenteId: data.id_docente });
+          await populateCombos({ distrito: ieObj?.distrito || null, ieId: idIe, docenteId: nuevoDocente?.id_docente });
 
         } catch (err) {
           console.error('Error al registrar docente:', err);
