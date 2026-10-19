@@ -270,10 +270,16 @@ const MonitoreoModule = (() => {
                 <div>
                   <div class="flex items-center justify-between mb-1.5">
                     <label for="select-ie" class="form-label mb-0 text-xs font-semibold">Institución Educativa *</label>
-                    <button type="button" id="btn-abrir-modal-ie" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                      <span>+ Agregar Colegio</span>
-                    </button>
+                    <div class="flex items-center gap-3">
+                      <button type="button" id="btn-editar-ie-seleccionada" class="text-xs font-semibold text-amber-600 hover:text-amber-700 flex items-center gap-1 hover:underline hidden" title="Editar los datos del colegio seleccionado">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        <span>Editar Colegio</span>
+                      </button>
+                      <button type="button" id="btn-abrir-modal-ie" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        <span>+ Agregar Colegio</span>
+                      </button>
+                    </div>
                   </div>
                   <select id="select-ie" class="form-input !pl-3 text-sm" required>
                     <option value="">-- Seleccionar Institución Educativa --</option>
@@ -600,11 +606,12 @@ const MonitoreoModule = (() => {
                   <th class="py-3 px-4">Distrito</th>
                   <th class="py-3 px-4">Nivel Educativo</th>
                   <th class="py-3 px-4 text-center">Docentes Registrados</th>
+                  <th class="py-3 px-4 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody id="tabla-colegios-body" class="divide-y divide-slate-100">
                 <tr>
-                  <td colspan="5" class="py-8 text-center text-slate-400">Cargando colegios...</td>
+                  <td colspan="6" class="py-8 text-center text-slate-400">Cargando colegios...</td>
                 </tr>
               </tbody>
             </table>
@@ -620,8 +627,8 @@ const MonitoreoModule = (() => {
         <div class="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 relative">
           <div class="flex items-center justify-between mb-5 border-b border-slate-100 pb-3">
             <div>
-              <h3 class="text-lg font-bold text-slate-900">Registrar Nuevo Colegio (I.E.)</h3>
-              <p class="text-xs text-slate-500">Agrega una nueva institución educativa a la base de datos.</p>
+              <h3 class="text-lg font-bold text-slate-900" id="modal-ie-title">Registrar Nuevo Colegio (I.E.)</h3>
+              <p class="text-xs text-slate-500" id="modal-ie-subtitle">Agrega una nueva institución educativa a la base de datos.</p>
             </div>
             <button type="button" id="btn-cerrar-modal-ie" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -629,6 +636,7 @@ const MonitoreoModule = (() => {
           </div>
 
           <form id="form-modal-ie" class="space-y-4">
+            <input type="hidden" id="ie-id-editar" value="">
             <div>
               <label for="ie-codigo" class="form-label text-xs font-semibold">Código Modular *</label>
               <input type="text" id="ie-codigo" class="form-input !pl-3 text-sm" placeholder="Ej: 0412858" required maxlength="10">
@@ -666,7 +674,7 @@ const MonitoreoModule = (() => {
                 Cancelar
               </button>
               <button type="submit" id="btn-guardar-modal-ie" class="btn-primary !w-auto text-xs px-5 py-2">
-                Guardar Colegio
+                <span id="btn-guardar-modal-ie-text">Guardar Colegio</span>
               </button>
             </div>
           </form>
@@ -913,6 +921,15 @@ const MonitoreoModule = (() => {
     } else {
       actualizarComboDocentes(null);
       actualizarComboEvaluadores(null);
+    }
+
+    const btnEditarIeSel = document.getElementById('btn-editar-ie-seleccionada');
+    if (btnEditarIeSel) {
+      if (selectIE.value) {
+        btnEditarIeSel.classList.remove('hidden');
+      } else {
+        btnEditarIeSel.classList.add('hidden');
+      }
     }
   };
 
@@ -1219,6 +1236,49 @@ const MonitoreoModule = (() => {
     }).join('');
   };
 
+  const abrirModal = (modal) => modal?.classList.remove('hidden');
+  const cerrarModal = (modal) => modal?.classList.add('hidden');
+
+  const abrirModalCrearColegio = () => {
+    const modalIE = document.getElementById('modal-nueva-ie');
+    const form = document.getElementById('form-modal-ie');
+    if (form) form.reset();
+    const idInput = document.getElementById('ie-id-editar');
+    if (idInput) idInput.value = '';
+    const title = document.getElementById('modal-ie-title');
+    if (title) title.textContent = 'Registrar Nuevo Colegio (I.E.)';
+    const subtitle = document.getElementById('modal-ie-subtitle');
+    if (subtitle) subtitle.textContent = 'Agrega una nueva institución educativa a la base de datos.';
+    const btnText = document.getElementById('btn-guardar-modal-ie-text');
+    if (btnText) btnText.textContent = 'Guardar Colegio';
+    abrirModal(modalIE);
+  };
+
+  const abrirModalEditarColegio = (idIe) => {
+    const modalIE = document.getElementById('modal-nueva-ie');
+    const ie = institucionesCache.find(i => i.id_ie === idIe);
+    if (!ie || !modalIE) return;
+
+    const idInput = document.getElementById('ie-id-editar');
+    if (idInput) idInput.value = ie.id_ie;
+    const codigoInput = document.getElementById('ie-codigo');
+    if (codigoInput) codigoInput.value = ie.cod_modular || '';
+    const nombreInput = document.getElementById('ie-nombre');
+    if (nombreInput) nombreInput.value = ie.nombre_ie || '';
+    const distritoInput = document.getElementById('ie-distrito');
+    if (distritoInput) distritoInput.value = ie.distrito || '';
+    const nivelSelect = document.getElementById('ie-nivel');
+    if (nivelSelect) nivelSelect.value = ie.nivel_educativo || 'Secundaria';
+
+    const title = document.getElementById('modal-ie-title');
+    if (title) title.textContent = 'Editar Institución Educativa (I.E.)';
+    const subtitle = document.getElementById('modal-ie-subtitle');
+    if (subtitle) subtitle.textContent = `Modifica los datos del colegio "${ie.nombre_ie}".`;
+    const btnText = document.getElementById('btn-guardar-modal-ie-text');
+    if (btnText) btnText.textContent = 'Actualizar Cambios';
+    abrirModal(modalIE);
+  };
+
   /**
    * Renderiza el directorio de colegios
    */
@@ -1226,12 +1286,12 @@ const MonitoreoModule = (() => {
     const tbody = document.getElementById('tabla-colegios-body');
     if (!tbody) return;
 
-    tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400">Consultando colegios...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">Consultando colegios...</td></tr>`;
     const colegios = await loadInstituciones();
     const docentes = await loadDocentes();
 
     if (colegios.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-slate-400">No hay colegios registrados.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">No hay colegios registrados.</td></tr>`;
       return;
     }
 
@@ -1253,9 +1313,22 @@ const MonitoreoModule = (() => {
               ${cantidadDocentes} docentes
             </span>
           </td>
+          <td class="py-3 px-4 text-center whitespace-nowrap">
+            <button type="button" class="btn-editar-ie px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors inline-flex items-center gap-1.5" data-id="${c.id_ie}" title="Editar datos del colegio">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+              <span>Editar</span>
+            </button>
+          </td>
         </tr>
       `;
     }).join('');
+
+    tbody.querySelectorAll('.btn-editar-ie').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idIe = btn.getAttribute('data-id');
+        abrirModalEditarColegio(idIe);
+      });
+    });
   };
 
   /**
@@ -1318,6 +1391,15 @@ const MonitoreoModule = (() => {
 
     selectIE?.addEventListener('change', () => {
       const ieId = selectIE.value;
+      const btnEditarIeSel = document.getElementById('btn-editar-ie-seleccionada');
+      if (btnEditarIeSel) {
+        if (ieId) {
+          btnEditarIeSel.classList.remove('hidden');
+        } else {
+          btnEditarIeSel.classList.add('hidden');
+        }
+      }
+
       if (ieId) {
         const ieObj = institucionesCache.find(i => i.id_ie === ieId);
         if (ieObj && ieObj.distrito && selectDistrito) {
@@ -1355,11 +1437,14 @@ const MonitoreoModule = (() => {
     const modalIE = document.getElementById('modal-nueva-ie');
     const modalDocente = document.getElementById('modal-nuevo-docente');
 
-    const abrirModal = (modal) => modal?.classList.remove('hidden');
-    const cerrarModal = (modal) => modal?.classList.add('hidden');
-
-    document.getElementById('btn-abrir-modal-ie')?.addEventListener('click', () => abrirModal(modalIE));
-    document.getElementById('btn-nuevo-colegio-tab')?.addEventListener('click', () => abrirModal(modalIE));
+    document.getElementById('btn-abrir-modal-ie')?.addEventListener('click', abrirModalCrearColegio);
+    document.getElementById('btn-nuevo-colegio-tab')?.addEventListener('click', abrirModalCrearColegio);
+    document.getElementById('btn-editar-ie-seleccionada')?.addEventListener('click', () => {
+      const currentIe = document.getElementById('select-ie')?.value;
+      if (currentIe) {
+        abrirModalEditarColegio(currentIe);
+      }
+    });
     document.getElementById('btn-cerrar-modal-ie')?.addEventListener('click', () => cerrarModal(modalIE));
     document.getElementById('btn-cancelar-modal-ie')?.addEventListener('click', () => cerrarModal(modalIE));
 
@@ -1374,11 +1459,14 @@ const MonitoreoModule = (() => {
     document.getElementById('btn-cerrar-modal-docente')?.addEventListener('click', () => cerrarModal(modalDocente));
     document.getElementById('btn-cancelar-modal-docente')?.addEventListener('click', () => cerrarModal(modalDocente));
 
-    // 4. Formulario Modal Colegio
+    // 4. Formulario Modal Colegio (Creación y Edición)
     const formModalIE = document.getElementById('form-modal-ie');
     if (formModalIE) {
       formModalIE.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        const editId = document.getElementById('ie-id-editar')?.value;
+        const isEditing = Boolean(editId);
 
         const codigo = document.getElementById('ie-codigo').value.trim();
         const nombre = document.getElementById('ie-nombre').value.trim();
@@ -1391,45 +1479,79 @@ const MonitoreoModule = (() => {
         if (!supabase) return;
 
         btnSubmit.disabled = true;
-        btnSubmit.innerHTML = `<div class="spinner"></div><span>Guardando...</span>`;
+        btnSubmit.innerHTML = `<div class="spinner"></div><span>${isEditing ? 'Actualizando...' : 'Guardando...'}</span>`;
 
         try {
-          let nuevaIE = null;
-          const { data, error } = await supabase
-            .from('instituciones_educativas')
-            .insert([{ cod_modular: codigo, nombre_ie: nombre, distrito: distrito, nivel_educativo: nivel }])
-            .select()
-            .single();
+          let colegioResult = null;
 
-          if (error) {
-            // Si hay restricción RLS o permiso denegado, recurrir a la función RPC con SECURITY DEFINER
-            if (error.message?.toLowerCase().includes('row-level security') || error.code === '42501') {
-              const { data: rpcData, error: rpcError } = await supabase.rpc('registrar_colegio', {
-                p_cod_modular: codigo,
-                p_nombre_ie: nombre,
-                p_distrito: distrito,
-                p_nivel_educativo: nivel
-              });
-              if (rpcError) throw rpcError;
-              nuevaIE = rpcData;
+          if (isEditing) {
+            // Actualizar colegio existente
+            const { data, error } = await supabase
+              .from('instituciones_educativas')
+              .update({ cod_modular: codigo, nombre_ie: nombre, distrito: distrito, nivel_educativo: nivel })
+              .eq('id_ie', editId)
+              .select()
+              .single();
+
+            if (error) {
+              if (error.message?.toLowerCase().includes('row-level security') || error.code === '42501') {
+                const { data: rpcData, error: rpcError } = await supabase.rpc('actualizar_colegio', {
+                  p_id_ie: editId,
+                  p_cod_modular: codigo,
+                  p_nombre_ie: nombre,
+                  p_distrito: distrito,
+                  p_nivel_educativo: nivel
+                });
+                if (rpcError) throw rpcError;
+                colegioResult = rpcData;
+              } else {
+                throw error;
+              }
             } else {
-              throw error;
+              colegioResult = data;
             }
+
+            window.SIMAP?.Notification?.success(`¡Colegio "<strong>${nombre}</strong>" actualizado con éxito!`);
           } else {
-            nuevaIE = data;
+            // Registrar nuevo colegio
+            const { data, error } = await supabase
+              .from('instituciones_educativas')
+              .insert([{ cod_modular: codigo, nombre_ie: nombre, distrito: distrito, nivel_educativo: nivel }])
+              .select()
+              .single();
+
+            if (error) {
+              if (error.message?.toLowerCase().includes('row-level security') || error.code === '42501') {
+                const { data: rpcData, error: rpcError } = await supabase.rpc('registrar_colegio', {
+                  p_cod_modular: codigo,
+                  p_nombre_ie: nombre,
+                  p_distrito: distrito,
+                  p_nivel_educativo: nivel
+                });
+                if (rpcError) throw rpcError;
+                colegioResult = rpcData;
+              } else {
+                throw error;
+              }
+            } else {
+              colegioResult = data;
+            }
+
+            window.SIMAP?.Notification?.success(`¡Colegio "<strong>${nombre}</strong>" registrado con éxito!`);
           }
 
-          window.SIMAP?.Notification?.success(`¡Colegio "<strong>${nombre}</strong>" registrado con éxito!`);
           cerrarModal(modalIE);
           formModalIE.reset();
+          const idInput = document.getElementById('ie-id-editar');
+          if (idInput) idInput.value = '';
           btnSubmit.disabled = false;
           btnSubmit.innerHTML = origText;
 
-          await populateCombos({ distrito: nuevaIE?.distrito || distrito, ieId: nuevaIE?.id_ie });
+          await populateCombos({ distrito: colegioResult?.distrito || distrito, ieId: colegioResult?.id_ie || editId });
           renderColegiosTable();
 
         } catch (err) {
-          console.error('Error al registrar colegio:', err);
+          console.error('Error al procesar colegio:', err);
           window.SIMAP?.Notification?.error(err.message || 'Error al guardar el colegio.');
           btnSubmit.disabled = false;
           btnSubmit.innerHTML = origText;

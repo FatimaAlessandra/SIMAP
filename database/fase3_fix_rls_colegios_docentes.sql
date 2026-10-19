@@ -108,6 +108,31 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION registrar_colegio(VARCHAR, VARCHAR, VARCHAR, VARCHAR) TO anon, authenticated, service_role;
 
+-- Función para actualizar colegio de forma directa e infalible
+CREATE OR REPLACE FUNCTION actualizar_colegio(
+    p_id_ie UUID,
+    p_cod_modular VARCHAR,
+    p_nombre_ie VARCHAR,
+    p_distrito VARCHAR,
+    p_nivel_educativo VARCHAR
+) RETURNS JSON AS $$
+DECLARE
+    v_colegio RECORD;
+BEGIN
+    UPDATE instituciones_educativas
+    SET cod_modular = p_cod_modular,
+        nombre_ie = p_nombre_ie,
+        distrito = p_distrito,
+        nivel_educativo = p_nivel_educativo
+    WHERE id_ie = p_id_ie
+    RETURNING * INTO v_colegio;
+
+    RETURN row_to_json(v_colegio);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION actualizar_colegio(UUID, VARCHAR, VARCHAR, VARCHAR, VARCHAR) TO anon, authenticated, service_role;
+
 -- Función para registrar docente de forma directa e infalible
 CREATE OR REPLACE FUNCTION registrar_docente_seguro(
     p_id_ie UUID,
