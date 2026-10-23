@@ -29,7 +29,8 @@ CREATE TABLE instituciones_educativas (
     cod_modular VARCHAR(10) UNIQUE NOT NULL,
     nombre_ie VARCHAR(150) NOT NULL,
     distrito VARCHAR(50) NOT NULL, -- Ej: Chepén, Pacanga, Pueblo Nuevo
-    nivel_educativo VARCHAR(50) NOT NULL -- Ej: Secundaria, Primaria, Inicial
+    nivel_educativo VARCHAR(50) NOT NULL, -- Ej: Secundaria, Primaria, Inicial
+    tipo_gestion VARCHAR(20) DEFAULT 'Pública' NOT NULL -- Ej: Pública, Privada
 );
 
 -- Tabla de Docentes (Basado exactamente en el Excel de la UGEL)

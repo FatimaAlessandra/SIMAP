@@ -284,6 +284,8 @@ const MonitoreoModule = (() => {
                   <select id="select-ie" class="form-input !pl-3 text-sm" required>
                     <option value="">-- Seleccionar Institución Educativa --</option>
                   </select>
+                  <!-- Selector de pestañas para el nivel en la pantalla principal si la I.E. tiene varios niveles -->
+                  <div id="main-ie-nivel-wrapper" class="hidden"></div>
                 </div>
 
                 <!-- Fila 2: Profesor Evaluador / Acompañante Pedagógico -->
@@ -605,13 +607,14 @@ const MonitoreoModule = (() => {
                   <th class="py-3 px-4">Nombre de la Institución Educativa</th>
                   <th class="py-3 px-4">Distrito</th>
                   <th class="py-3 px-4">Nivel Educativo</th>
+                  <th class="py-3 px-4">Gestión</th>
                   <th class="py-3 px-4 text-center">Docentes Registrados</th>
                   <th class="py-3 px-4 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody id="tabla-colegios-body" class="divide-y divide-slate-100">
                 <tr>
-                  <td colspan="6" class="py-8 text-center text-slate-400">Cargando colegios...</td>
+                  <td colspan="7" class="py-8 text-center text-slate-400">Cargando colegios...</td>
                 </tr>
               </tbody>
             </table>
@@ -647,7 +650,7 @@ const MonitoreoModule = (() => {
               <input type="text" id="ie-nombre" class="form-input !pl-3 text-sm" placeholder="Ej: I.E. 81023 Carlos Gutiérrez Noriega" required>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label for="ie-distrito" class="form-label text-xs font-semibold">Distrito *</label>
                 <input type="text" id="ie-distrito" list="distritos-list-suggestions" class="form-input !pl-3 text-sm" placeholder="Ej: Chepén, Pacanga, Pueblo Nuevo" required value="Chepén">
@@ -665,6 +668,14 @@ const MonitoreoModule = (() => {
                   <option value="Primaria">Primaria</option>
                   <option value="Inicial">Inicial</option>
                   <option value="Superior">Superior</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="ie-gestion" class="form-label text-xs font-semibold">Gestión / Tipo *</label>
+                <select id="ie-gestion" class="form-input !pl-3 text-sm" required>
+                  <option value="Pública">Pública (Estatal)</option>
+                  <option value="Privada">Privada (Particular)</option>
                 </select>
               </div>
             </div>
@@ -698,10 +709,15 @@ const MonitoreoModule = (() => {
 
           <form id="form-modal-docente" class="space-y-4">
             <div>
-              <label for="docente-modal-ie" class="form-label text-xs font-semibold">Institución Educativa *</label>
-              <select id="docente-modal-ie" class="form-input !pl-3 text-sm" required>
-                <option value="">-- Seleccionar Colegio --</option>
+              <label for="docente-modal-colegio-select" class="form-label text-xs font-semibold">Institución Educativa (Colegio) *</label>
+              <select id="docente-modal-colegio-select" class="form-input !pl-3 text-sm" required>
+                <option value="">-- Seleccionar Colegio / Institución Educativa --</option>
               </select>
+              <!-- Campo oculto con el id_ie final según la pestaña de nivel seleccionada -->
+              <input type="hidden" id="docente-modal-ie" name="id_ie" required>
+
+              <!-- Selector de Pestañas de Nivel Educativo -->
+              <div id="docente-modal-nivel-wrapper" class="hidden"></div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -909,7 +925,7 @@ const MonitoreoModule = (() => {
     selectIE.innerHTML = '<option value="">-- Seleccionar Institución Educativa --</option>' + 
       colegiosFiltrados.map(ie => `
         <option value="${ie.id_ie}" ${ieIdToSelect === ie.id_ie ? 'selected' : ''}>
-          ${ie.nombre_ie} (${ie.distrito} - ${ie.nivel_educativo})
+          ${ie.nombre_ie} - Nivel ${ie.nivel_educativo} (Cód. Modular: ${ie.cod_modular} &bull; ${ie.distrito})
         </option>
       `).join('');
 
@@ -922,6 +938,8 @@ const MonitoreoModule = (() => {
       actualizarComboDocentes(null);
       actualizarComboEvaluadores(null);
     }
+
+    actualizarNivelPrincipalIE(selectIE.value);
 
     const btnEditarIeSel = document.getElementById('btn-editar-ie-seleccionada');
     if (btnEditarIeSel) {
@@ -1019,7 +1037,7 @@ const MonitoreoModule = (() => {
   const populateCombos = async (distritoOrOpts = null, selectedIeIdPre = null, selectedDocenteIdPre = null) => {
     const selectDistrito = document.getElementById('select-distrito');
     const selectIE = document.getElementById('select-ie');
-    const modalSelectIE = document.getElementById('docente-modal-ie');
+    const modalSelectColegio = document.getElementById('docente-modal-colegio-select');
 
     if (!selectIE) return;
 
@@ -1075,10 +1093,33 @@ const MonitoreoModule = (() => {
       await actualizarComboEvaluadores(null);
     }
 
-    // 4. Modal de nuevo docente: combo de colegios
-    if (modalSelectIE) {
-      modalSelectIE.innerHTML = '<option value="">-- Seleccionar Colegio --</option>' + 
-        institucionesCache.map(ie => `<option value="${ie.id_ie}" ${selectedIe === ie.id_ie ? 'selected' : ''}>${ie.nombre_ie} (${ie.distrito})</option>`).join('');
+    // 4. Modal de nuevo docente: combo de colegios únicos agrupados
+    if (modalSelectColegio) {
+      const gruposColegios = obtenerGruposColegios();
+      modalSelectColegio.innerHTML = '<option value="">-- Seleccionar Colegio / Institución Educativa --</option>' + 
+        gruposColegios.map(g => {
+          const badgeNiveles = g.niveles.length > 1
+            ? `— (${g.niveles.length} niveles: ${g.niveles.map(n => n.nivel_educativo).join(', ')})`
+            : `— Nivel ${g.niveles[0].nivel_educativo}`;
+          const gestionEtiqueta = g.tipo_gestion ? ` • ${g.tipo_gestion}` : '';
+          return `
+            <option value="${g.key}">
+              ${g.nombre_ie} (${g.distrito}${gestionEtiqueta}) ${badgeNiveles}
+            </option>
+          `;
+        }).join('');
+
+      if (selectedIe) {
+        const grupo = gruposColegios.find(g => g.niveles.some(n => n.id_ie === selectedIe));
+        if (grupo) {
+          modalSelectColegio.value = grupo.key;
+          actualizarNivelModalDocente(grupo, selectedIe);
+        } else {
+          actualizarNivelModalDocente(null);
+        }
+      } else {
+        actualizarNivelModalDocente(null);
+      }
     }
   };
 
@@ -1245,6 +1286,8 @@ const MonitoreoModule = (() => {
     if (form) form.reset();
     const idInput = document.getElementById('ie-id-editar');
     if (idInput) idInput.value = '';
+    const gestionSelect = document.getElementById('ie-gestion');
+    if (gestionSelect) gestionSelect.value = 'Pública';
     const title = document.getElementById('modal-ie-title');
     if (title) title.textContent = 'Registrar Nuevo Colegio (I.E.)';
     const subtitle = document.getElementById('modal-ie-subtitle');
@@ -1269,6 +1312,8 @@ const MonitoreoModule = (() => {
     if (distritoInput) distritoInput.value = ie.distrito || '';
     const nivelSelect = document.getElementById('ie-nivel');
     if (nivelSelect) nivelSelect.value = ie.nivel_educativo || 'Secundaria';
+    const gestionSelect = document.getElementById('ie-gestion');
+    if (gestionSelect) gestionSelect.value = ie.tipo_gestion || ie.gestion || 'Pública';
 
     const title = document.getElementById('modal-ie-title');
     if (title) title.textContent = 'Editar Institución Educativa (I.E.)';
@@ -1280,23 +1325,317 @@ const MonitoreoModule = (() => {
   };
 
   /**
+   * Helper para normalizar nombres de instituciones y extraer números
+   */
+  const normalizarNombreIE = (nombre = '') => {
+    return (nombre || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/^i\.?e\.?\s+/i, '')
+      .replace(/[-_.,]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const extraerNumeroIE = (nombre = '') => {
+    const match = (nombre || '').match(/\b\d{4,6}\b/);
+    return match ? match[0] : null;
+  };
+
+  /**
+   * Determina si dos registros en instituciones_educativas corresponden al mismo colegio
+   * (comparten el mismo nombre o número de I.E. en el mismo distrito, variando el nivel educativo)
+   */
+  const sonMismaInstitucion = (ieA, ieB) => {
+    if (!ieA || !ieB) return false;
+    if (ieA.id_ie === ieB.id_ie) return true;
+
+    const distA = (ieA.distrito || '').trim().toLowerCase();
+    const distB = (ieB.distrito || '').trim().toLowerCase();
+    if (distA && distB && distA !== distB) return false;
+
+    const normA = normalizarNombreIE(ieA.nombre_ie);
+    const normB = normalizarNombreIE(ieB.nombre_ie);
+    if (normA && normB && normA === normB) return true;
+
+    const numA = extraerNumeroIE(ieA.nombre_ie);
+    const numB = extraerNumeroIE(ieB.nombre_ie);
+    if (numA && numB && numA === numB) return true;
+
+    return false;
+  };
+
+  /**
+   * Retorna icono descriptivo según el nivel educativo
+   */
+  const getIconoNivel = (nivel) => {
+    const n = (nivel || '').toLowerCase();
+    if (n.includes('inic')) return '👶';
+    if (n.includes('prim')) return '📘';
+    if (n.includes('sec')) return '🎓';
+    if (n.includes('sup')) return '🏛️';
+    return '🏫';
+  };
+
+  /**
+   * Agrupa las instituciones educativas por sede única (mismo colegio y distrito)
+   * para evitar mostrar nombres repetidos en los menús desplegables.
+   */
+  const obtenerGruposColegios = (listaColegios = institucionesCache) => {
+    const grupos = [];
+
+    listaColegios.forEach(ie => {
+      let grupo = grupos.find(g => sonMismaInstitucion(g.ieBase, ie));
+      if (!grupo) {
+        const nombreLimpio = (ie.nombre_ie || '')
+          .replace(/\s*-\s*Nivel.*$/i, '')
+          .replace(/\s*\(Cód.*$/i, '')
+          .trim();
+
+        grupo = {
+          key: `grupo_${ie.id_ie}`,
+          nombre_ie: nombreLimpio || ie.nombre_ie,
+          distrito: ie.distrito,
+          tipo_gestion: ie.tipo_gestion || ie.gestion || 'Pública',
+          ieBase: ie,
+          niveles: []
+        };
+        grupos.push(grupo);
+      }
+      grupo.niveles.push(ie);
+    });
+
+    const ordenNiveles = { 'inicial': 1, 'primaria': 2, 'secundaria': 3, 'superior': 4 };
+    grupos.forEach(g => {
+      g.niveles.sort((a, b) => {
+        const ordA = ordenNiveles[(a.nivel_educativo || '').toLowerCase()] || 99;
+        const ordB = ordenNiveles[(b.nivel_educativo || '').toLowerCase()] || 99;
+        return ordA - ordB;
+      });
+    });
+
+    grupos.sort((a, b) => a.nombre_ie.localeCompare(b.nombre_ie, 'es', { sensitivity: 'base' }));
+
+    return grupos;
+  };
+
+  /**
+   * Actualiza el selector de pestañas de nivel educativo en el modal de nuevo docente
+   * - Si el colegio tiene varios niveles (Inicial, Primaria, Secundaria): muestra pestañas de navegación interactivas.
+   * - Si solo tiene un nivel: NO muestra pestañas de elección, solo una confirmación informativa limpia.
+   */
+  const actualizarNivelModalDocente = (grupoColegio = null, idIeActivo = null) => {
+    const wrapper = document.getElementById('docente-modal-nivel-wrapper');
+    const inputHiddenIE = document.getElementById('docente-modal-ie');
+    if (!wrapper || !inputHiddenIE) return;
+
+    if (!grupoColegio || !grupoColegio.niveles || grupoColegio.niveles.length === 0) {
+      wrapper.innerHTML = '';
+      wrapper.classList.add('hidden');
+      inputHiddenIE.value = '';
+      return;
+    }
+
+    wrapper.classList.remove('hidden');
+
+    if (grupoColegio.niveles.length > 1) {
+      let nivelSeleccionado = grupoColegio.niveles.find(n => n.id_ie === idIeActivo);
+      if (!nivelSeleccionado) {
+        nivelSeleccionado = grupoColegio.niveles[0];
+      }
+
+      inputHiddenIE.value = nivelSeleccionado.id_ie;
+
+      wrapper.innerHTML = `
+        <div class="mt-3.5 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+              <span>Pestaña de Nivel Educativo del Docente:</span>
+            </span>
+            <span class="text-[11px] font-semibold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full">
+              ${grupoColegio.niveles.length} niveles en este colegio
+            </span>
+          </div>
+
+          <!-- Barra de Pestañas (Tabs) -->
+          <div class="flex border-b border-slate-200 gap-1.5 overflow-x-auto pt-1" role="tablist">
+            ${grupoColegio.niveles.map(n => {
+              const isSelected = n.id_ie === nivelSeleccionado.id_ie;
+              return `
+                <button 
+                  type="button" 
+                  role="tab"
+                  aria-selected="${isSelected}"
+                  class="tab-nivel-docente px-4 py-2 text-xs font-bold rounded-t-xl transition-all flex items-center gap-2 cursor-pointer border-t-2 border-l border-r ${
+                    isSelected 
+                      ? 'bg-blue-50/90 text-blue-900 border-t-blue-600 border-l-blue-200 border-r-blue-200 -mb-px shadow-sm' 
+                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:text-slate-800 hover:bg-slate-100 border-t-transparent'
+                  }"
+                  data-id-ie="${n.id_ie}"
+                  title="Código Modular: ${n.cod_modular}"
+                >
+                  <span class="w-2 h-2 rounded-full ${isSelected ? 'bg-blue-600 ring-2 ring-blue-300' : 'bg-slate-400'}"></span>
+                  <span>${getIconoNivel(n.nivel_educativo)} ${n.nivel_educativo}</span>
+                  <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${isSelected ? 'bg-blue-600 text-white font-semibold' : 'bg-slate-200 text-slate-600'}">
+                    Cód. ${n.cod_modular}
+                  </span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Panel informativo debajo de las pestañas -->
+          <div class="p-3 bg-blue-50/40 rounded-b-xl border border-blue-200/70 flex items-center justify-between text-xs text-slate-700">
+            <div class="flex items-center gap-2">
+              <span class="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+              <span>El docente se registrará en el nivel <strong>${nivelSeleccionado.nivel_educativo}</strong></span>
+            </div>
+            <div class="text-[11px] font-mono text-blue-800 bg-blue-100/70 px-2.5 py-0.5 rounded font-semibold border border-blue-200">
+              Código Modular: ${nivelSeleccionado.cod_modular}
+            </div>
+          </div>
+        </div>
+      `;
+
+      wrapper.querySelectorAll('.tab-nivel-docente').forEach(tabBtn => {
+        tabBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const targetIdIe = tabBtn.getAttribute('data-id-ie');
+          if (targetIdIe) {
+            actualizarNivelModalDocente(grupoColegio, targetIdIe);
+          }
+        });
+      });
+
+    } else {
+      // Un solo nivel: NO muestra pestañas de elección
+      const nivelUnico = grupoColegio.niveles[0];
+      inputHiddenIE.value = nivelUnico.id_ie;
+
+      wrapper.innerHTML = `
+        <div class="mt-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+            <span class="text-slate-600">Nivel Educativo: <strong class="text-slate-900 font-semibold">${nivelUnico.nivel_educativo}</strong></span>
+          </div>
+          <span class="text-[11px] font-mono bg-white border border-slate-200 text-slate-700 px-2.5 py-1 rounded-md font-semibold">
+            Cód. Modular: ${nivelUnico.cod_modular}
+          </span>
+        </div>
+      `;
+    }
+  };
+
+  /**
+   * Muestra pestañas de nivel educativo en la pantalla principal de monitoreo
+   * si el colegio seleccionado tiene múltiples niveles (Inicial, Primaria, Secundaria).
+   */
+  const actualizarNivelPrincipalIE = (selectedIdIe = null) => {
+    const wrapper = document.getElementById('main-ie-nivel-wrapper');
+    const selectIE = document.getElementById('select-ie');
+    if (!wrapper) return;
+
+    if (!selectedIdIe) {
+      wrapper.innerHTML = '';
+      wrapper.classList.add('hidden');
+      return;
+    }
+
+    const ieSeleccionada = institucionesCache.find(i => i.id_ie === selectedIdIe);
+    if (!ieSeleccionada) {
+      wrapper.innerHTML = '';
+      wrapper.classList.add('hidden');
+      return;
+    }
+
+    const nivelesHermanos = institucionesCache.filter(i => sonMismaInstitucion(i, ieSeleccionada));
+
+    if (nivelesHermanos.length > 1) {
+      const ordenNiveles = { 'inicial': 1, 'primaria': 2, 'secundaria': 3, 'superior': 4 };
+      nivelesHermanos.sort((a, b) => {
+        const ordA = ordenNiveles[(a.nivel_educativo || '').toLowerCase()] || 99;
+        const ordB = ordenNiveles[(b.nivel_educativo || '').toLowerCase()] || 99;
+        return ordA - ordB;
+      });
+
+      wrapper.classList.remove('hidden');
+      wrapper.innerHTML = `
+        <div class="mt-2.5 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-slate-600 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+              <span>Pestañas de Nivel Educativo en esta I.E.:</span>
+            </span>
+            <span class="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full font-medium">
+              ${nivelesHermanos.length} niveles
+            </span>
+          </div>
+          <div class="flex border-b border-slate-200 gap-1 overflow-x-auto pt-0.5" role="tablist">
+            ${nivelesHermanos.map(n => {
+              const isSelected = n.id_ie === ieSeleccionada.id_ie;
+              return `
+                <button 
+                  type="button" 
+                  role="tab"
+                  aria-selected="${isSelected}"
+                  class="tab-main-nivel px-3 py-1.5 text-xs font-bold rounded-t-lg transition-all flex items-center gap-1.5 cursor-pointer border-t-2 border-l border-r ${
+                    isSelected 
+                      ? 'bg-blue-50 text-blue-900 border-t-blue-600 border-l-blue-200 border-r-blue-200 -mb-px' 
+                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:text-slate-800 hover:bg-slate-100 border-t-transparent'
+                  }"
+                  data-id-ie="${n.id_ie}"
+                  title="Código Modular: ${n.cod_modular}"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-blue-600' : 'bg-slate-400'}"></span>
+                  <span>${getIconoNivel(n.nivel_educativo)} ${n.nivel_educativo}</span>
+                  <span class="text-[10px] font-mono px-1 rounded ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}">
+                    Cód. ${n.cod_modular}
+                  </span>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
+      wrapper.querySelectorAll('.tab-main-nivel').forEach(tabBtn => {
+        tabBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const targetIdIe = tabBtn.getAttribute('data-id-ie');
+          if (selectIE && targetIdIe && selectIE.value !== targetIdIe) {
+            selectIE.value = targetIdIe;
+            selectIE.dispatchEvent(new Event('change'));
+          }
+        });
+      });
+    } else {
+      wrapper.innerHTML = '';
+      wrapper.classList.add('hidden');
+    }
+  };
+
+  /**
    * Renderiza el directorio de colegios
    */
   const renderColegiosTable = async () => {
     const tbody = document.getElementById('tabla-colegios-body');
     if (!tbody) return;
 
-    tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">Consultando colegios...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Consultando colegios...</td></tr>`;
     const colegios = await loadInstituciones();
     const docentes = await loadDocentes();
 
     if (colegios.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">No hay colegios registrados.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">No hay colegios registrados.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = colegios.map(c => {
       const cantidadDocentes = docentes.filter(d => d.id_ie === c.id_ie).length;
+      const gestion = c.tipo_gestion || c.gestion || 'Pública';
+      const isPrivada = gestion.toLowerCase().includes('priv');
 
       return `
         <tr class="hover:bg-slate-50/80 transition-colors">
@@ -1306,6 +1645,15 @@ const MonitoreoModule = (() => {
           <td class="py-3 px-4">
             <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
               ${c.nivel_educativo}
+            </span>
+          </td>
+          <td class="py-3 px-4">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+              isPrivada 
+                ? 'bg-purple-50 text-purple-700 border border-purple-200' 
+                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            }">
+              ${gestion}
             </span>
           </td>
           <td class="py-3 px-4 text-center">
@@ -1410,6 +1758,7 @@ const MonitoreoModule = (() => {
       }
       actualizarComboDocentes(ieId);
       actualizarComboEvaluadores(ieId);
+      actualizarNivelPrincipalIE(ieId);
     });
 
     // Toggle entre selector y modo manual para el Profesor Evaluador
@@ -1450,14 +1799,48 @@ const MonitoreoModule = (() => {
 
     document.getElementById('btn-abrir-modal-docente')?.addEventListener('click', () => {
       const currentIe = document.getElementById('select-ie')?.value;
-      if (currentIe) {
-        const modalSelectIe = document.getElementById('docente-modal-ie');
-        if (modalSelectIe) modalSelectIe.value = currentIe;
+      const modalSelectColegio = document.getElementById('docente-modal-colegio-select');
+      const gruposColegios = obtenerGruposColegios();
+
+      if (currentIe && modalSelectColegio) {
+        const grupo = gruposColegios.find(g => g.niveles.some(n => n.id_ie === currentIe));
+        if (grupo) {
+          modalSelectColegio.value = grupo.key;
+          actualizarNivelModalDocente(grupo, currentIe);
+        } else {
+          modalSelectColegio.value = '';
+          actualizarNivelModalDocente(null);
+        }
+      } else {
+        if (modalSelectColegio) modalSelectColegio.value = '';
+        actualizarNivelModalDocente(null);
       }
       abrirModal(modalDocente);
     });
-    document.getElementById('btn-cerrar-modal-docente')?.addEventListener('click', () => cerrarModal(modalDocente));
-    document.getElementById('btn-cancelar-modal-docente')?.addEventListener('click', () => cerrarModal(modalDocente));
+
+    document.getElementById('docente-modal-colegio-select')?.addEventListener('change', (e) => {
+      const groupKey = e.target.value;
+      if (!groupKey) {
+        actualizarNivelModalDocente(null);
+        return;
+      }
+      const gruposColegios = obtenerGruposColegios();
+      const grupo = gruposColegios.find(g => g.key === groupKey);
+      actualizarNivelModalDocente(grupo, null);
+    });
+
+    document.getElementById('btn-cerrar-modal-docente')?.addEventListener('click', () => {
+      cerrarModal(modalDocente);
+      const modalSelectColegio = document.getElementById('docente-modal-colegio-select');
+      if (modalSelectColegio) modalSelectColegio.value = '';
+      actualizarNivelModalDocente(null);
+    });
+    document.getElementById('btn-cancelar-modal-docente')?.addEventListener('click', () => {
+      cerrarModal(modalDocente);
+      const modalSelectColegio = document.getElementById('docente-modal-colegio-select');
+      if (modalSelectColegio) modalSelectColegio.value = '';
+      actualizarNivelModalDocente(null);
+    });
 
     // 4. Formulario Modal Colegio (Creación y Edición)
     const formModalIE = document.getElementById('form-modal-ie');
@@ -1472,6 +1855,7 @@ const MonitoreoModule = (() => {
         const nombre = document.getElementById('ie-nombre').value.trim();
         const distrito = document.getElementById('ie-distrito').value.trim();
         const nivel = document.getElementById('ie-nivel').value;
+        const gestion = document.getElementById('ie-gestion')?.value || 'Pública';
         const btnSubmit = document.getElementById('btn-guardar-modal-ie');
         const origText = btnSubmit.innerHTML;
 
@@ -1486,24 +1870,49 @@ const MonitoreoModule = (() => {
 
           if (isEditing) {
             // Actualizar colegio existente
-            const { data, error } = await supabase
+            let payload = { cod_modular: codigo, nombre_ie: nombre, distrito: distrito, nivel_educativo: nivel, tipo_gestion: gestion };
+            let { data, error } = await supabase
               .from('instituciones_educativas')
-              .update({ cod_modular: codigo, nombre_ie: nombre, distrito: distrito, nivel_educativo: nivel })
+              .update(payload)
               .eq('id_ie', editId)
               .select()
               .single();
 
+            // Si la columna tipo_gestion aún no existe en la BD de Supabase, reintentar sin ella
+            if (error && error.message?.includes('tipo_gestion')) {
+              delete payload.tipo_gestion;
+              const retry = await supabase
+                .from('instituciones_educativas')
+                .update(payload)
+                .eq('id_ie', editId)
+                .select()
+                .single();
+              data = retry.data;
+              error = retry.error;
+            }
+
             if (error) {
               if (error.message?.toLowerCase().includes('row-level security') || error.code === '42501') {
-                const { data: rpcData, error: rpcError } = await supabase.rpc('actualizar_colegio', {
+                let rpcRes = await supabase.rpc('actualizar_colegio', {
                   p_id_ie: editId,
                   p_cod_modular: codigo,
                   p_nombre_ie: nombre,
                   p_distrito: distrito,
-                  p_nivel_educativo: nivel
+                  p_nivel_educativo: nivel,
+                  p_tipo_gestion: gestion
                 });
-                if (rpcError) throw rpcError;
-                colegioResult = rpcData;
+                if (rpcRes.error) {
+                  // Fallback a versión anterior de RPC
+                  rpcRes = await supabase.rpc('actualizar_colegio', {
+                    p_id_ie: editId,
+                    p_cod_modular: codigo,
+                    p_nombre_ie: nombre,
+                    p_distrito: distrito,
+                    p_nivel_educativo: nivel
+                  });
+                }
+                if (rpcRes.error) throw rpcRes.error;
+                colegioResult = rpcRes.data;
               } else {
                 throw error;
               }
@@ -1514,22 +1923,43 @@ const MonitoreoModule = (() => {
             window.SIMAP?.Notification?.success(`¡Colegio "<strong>${nombre}</strong>" actualizado con éxito!`);
           } else {
             // Registrar nuevo colegio
-            const { data, error } = await supabase
+            let insertPayload = { cod_modular: codigo, nombre_ie: nombre, distrito: distrito, nivel_educativo: nivel, tipo_gestion: gestion };
+            let { data, error } = await supabase
               .from('instituciones_educativas')
-              .insert([{ cod_modular: codigo, nombre_ie: nombre, distrito: distrito, nivel_educativo: nivel }])
+              .insert([insertPayload])
               .select()
               .single();
 
+            if (error && error.message?.includes('tipo_gestion')) {
+              delete insertPayload.tipo_gestion;
+              const retry = await supabase
+                .from('instituciones_educativas')
+                .insert([insertPayload])
+                .select()
+                .single();
+              data = retry.data;
+              error = retry.error;
+            }
+
             if (error) {
               if (error.message?.toLowerCase().includes('row-level security') || error.code === '42501') {
-                const { data: rpcData, error: rpcError } = await supabase.rpc('registrar_colegio', {
+                let rpcRes = await supabase.rpc('registrar_colegio', {
                   p_cod_modular: codigo,
                   p_nombre_ie: nombre,
                   p_distrito: distrito,
-                  p_nivel_educativo: nivel
+                  p_nivel_educativo: nivel,
+                  p_tipo_gestion: gestion
                 });
-                if (rpcError) throw rpcError;
-                colegioResult = rpcData;
+                if (rpcRes.error) {
+                  rpcRes = await supabase.rpc('registrar_colegio', {
+                    p_cod_modular: codigo,
+                    p_nombre_ie: nombre,
+                    p_distrito: distrito,
+                    p_nivel_educativo: nivel
+                  });
+                }
+                if (rpcRes.error) throw rpcRes.error;
+                colegioResult = rpcRes.data;
               } else {
                 throw error;
               }
@@ -1624,9 +2054,12 @@ const MonitoreoModule = (() => {
             nuevoDocente = data;
           }
 
-          window.SIMAP?.Notification?.success(`¡Docente "<strong>${nombres} ${paterno}</strong>" registrado!`);
+          window.SIMAP?.Notification?.success(`¡Docente "<strong>${nombres} ${paterno}</strong>" registrado con éxito!`);
           cerrarModal(modalDocente);
           formModalDocente.reset();
+          const modalSelectColegio = document.getElementById('docente-modal-colegio-select');
+          if (modalSelectColegio) modalSelectColegio.value = '';
+          actualizarNivelModalDocente(null);
           btnSubmit.disabled = false;
           btnSubmit.innerHTML = origText;
 
