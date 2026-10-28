@@ -2065,10 +2065,15 @@ const MonitoreoModule = (() => {
             .select()
             .single();
 
-          // Si las columnas hora_inicio o hora_fin aún no existen en la BD de Supabase, reintentar sin ellas
-          if (error && (error.message?.includes('hora_inicio') || error.message?.includes('hora_fin'))) {
-            delete insertPayload.hora_inicio;
-            delete insertPayload.hora_fin;
+          // Si las columnas hora_inicio, hora_fin o jornada no existen en la BD de Supabase (o caché), adaptar el payload y reintentar
+          if (error && (error.message?.includes('jornada') || error.message?.includes('hora_inicio') || error.message?.includes('hora_fin'))) {
+            if (error.message?.includes('jornada')) {
+              delete insertPayload.jornada;
+            }
+            if (error.message?.includes('hora_inicio') || error.message?.includes('hora_fin')) {
+              delete insertPayload.hora_inicio;
+              delete insertPayload.hora_fin;
+            }
             const retry = await supabase
               .from('docentes')
               .insert([insertPayload])
