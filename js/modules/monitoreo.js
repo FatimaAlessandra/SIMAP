@@ -759,15 +759,26 @@ const MonitoreoModule = (() => {
               </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label for="docente-cargo" class="form-label text-xs font-semibold">Cargo *</label>
                 <input type="text" id="docente-cargo" class="form-input !pl-3 text-sm" value="Profesor de Aula" required>
               </div>
 
               <div>
-                <label for="docente-jornada" class="form-label text-xs font-semibold">Jornada (Horas) *</label>
-                <input type="number" id="docente-jornada" class="form-input !pl-3 text-sm" value="30" min="1" max="40" required>
+                <label for="docente-hora-inicio" class="form-label text-xs font-semibold flex items-center gap-1 text-slate-700">
+                  <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <span>Hora de Inicio *</span>
+                </label>
+                <input type="time" id="docente-hora-inicio" class="form-input !pl-3 text-sm" value="08:00" required>
+              </div>
+
+              <div>
+                <label for="docente-hora-fin" class="form-label text-xs font-semibold flex items-center gap-1 text-slate-700">
+                  <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <span>Hora de Fin *</span>
+                </label>
+                <input type="time" id="docente-hora-fin" class="form-input !pl-3 text-sm" value="13:00" required>
               </div>
             </div>
 
@@ -1815,6 +1826,10 @@ const MonitoreoModule = (() => {
         if (modalSelectColegio) modalSelectColegio.value = '';
         actualizarNivelModalDocente(null);
       }
+      const hInicio = document.getElementById('docente-hora-inicio');
+      if (hInicio && !hInicio.value) hInicio.value = '08:00';
+      const hFin = document.getElementById('docente-hora-fin');
+      if (hFin && !hFin.value) hFin.value = '13:00';
       abrirModal(modalDocente);
     });
 
@@ -2003,7 +2018,22 @@ const MonitoreoModule = (() => {
         const sexo = document.getElementById('docente-sexo').value;
         const especialidad = document.getElementById('docente-especialidad').value.trim();
         const cargo = document.getElementById('docente-cargo').value.trim();
-        const jornada = parseInt(document.getElementById('docente-jornada').value, 10);
+        const horaInicio = document.getElementById('docente-hora-inicio')?.value || '08:00';
+        const horaFin = document.getElementById('docente-hora-fin')?.value || '13:00';
+
+        // Calcular jornada estimada en horas (semanal 5 días) como compatibilidad con bases de datos existentes
+        let horasJornada = 30;
+        try {
+          const [hI, mI] = horaInicio.split(':').map(Number);
+          const [hF, mF] = horaFin.split(':').map(Number);
+          const diff = (hF + mF / 60) - (hI + mI / 60);
+          if (diff > 0) {
+            horasJornada = Math.round(diff * 5);
+          }
+        } catch (e) {
+          horasJornada = 30;
+        }
+
         const btnSubmit = document.getElementById('btn-guardar-modal-docente');
         const origText = btnSubmit.innerHTML;
 
@@ -2015,26 +2045,43 @@ const MonitoreoModule = (() => {
 
         try {
           let nuevoDocente = null;
-          const { data, error } = await supabase
+          let insertPayload = {
+            id_ie: idIe,
+            dni: dni,
+            nombres: nombres,
+            apellido_paterno: paterno,
+            apellido_materno: materno,
+            sexo: sexo,
+            especialidad: especialidad,
+            cargo: cargo,
+            hora_inicio: horaInicio,
+            hora_fin: horaFin,
+            jornada: horasJornada
+          };
+
+          let { data, error } = await supabase
             .from('docentes')
-            .insert([{
-              id_ie: idIe,
-              dni: dni,
-              nombres: nombres,
-              apellido_paterno: paterno,
-              apellido_materno: materno,
-              sexo: sexo,
-              especialidad: especialidad,
-              cargo: cargo,
-              jornada: jornada
-            }])
+            .insert([insertPayload])
             .select()
             .single();
+
+          // Si las columnas hora_inicio o hora_fin aún no existen en la BD de Supabase, reintentar sin ellas
+          if (error && (error.message?.includes('hora_inicio') || error.message?.includes('hora_fin'))) {
+            delete insertPayload.hora_inicio;
+            delete insertPayload.hora_fin;
+            const retry = await supabase
+              .from('docentes')
+              .insert([insertPayload])
+              .select()
+              .single();
+            data = retry.data;
+            error = retry.error;
+          }
 
           if (error) {
             // Si hay restricción RLS o permiso denegado, recurrir a la función RPC con SECURITY DEFINER
             if (error.message?.toLowerCase().includes('row-level security') || error.code === '42501') {
-              const { data: rpcData, error: rpcError } = await supabase.rpc('registrar_docente_seguro', {
+              let rpcRes = await supabase.rpc('registrar_docente_seguro', {
                 p_id_ie: idIe,
                 p_dni: dni,
                 p_nombres: nombres,
@@ -2043,10 +2090,28 @@ const MonitoreoModule = (() => {
                 p_sexo: sexo,
                 p_especialidad: especialidad,
                 p_cargo: cargo,
-                p_jornada: jornada
+                p_hora_inicio: horaInicio,
+                p_hora_fin: horaFin,
+                p_jornada: horasJornada
               });
-              if (rpcError) throw rpcError;
-              nuevoDocente = rpcData;
+
+              if (rpcRes.error) {
+                // Fallback a versión anterior de RPC
+                rpcRes = await supabase.rpc('registrar_docente_seguro', {
+                  p_id_ie: idIe,
+                  p_dni: dni,
+                  p_nombres: nombres,
+                  p_apellido_paterno: paterno,
+                  p_apellido_materno: materno,
+                  p_sexo: sexo,
+                  p_especialidad: especialidad,
+                  p_cargo: cargo,
+                  p_jornada: horasJornada
+                });
+              }
+
+              if (rpcRes.error) throw rpcRes.error;
+              nuevoDocente = rpcRes.data;
             } else {
               throw error;
             }

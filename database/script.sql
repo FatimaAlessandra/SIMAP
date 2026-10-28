@@ -44,7 +44,9 @@ CREATE TABLE docentes (
     sexo tipo_sexo,
     especialidad VARCHAR(150), -- Permitimos nulos porque el Excel tenía 1191 vacíos
     cargo VARCHAR(100) NOT NULL,
-    jornada INT NOT NULL, -- Horas, ej: 30
+    hora_inicio TIME DEFAULT '08:00',
+    hora_fin TIME DEFAULT '13:00',
+    jornada INT, -- Horas referenciales o calculadas
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
