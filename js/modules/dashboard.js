@@ -4,51 +4,75 @@
  */
 
 const DashboardModule = (() => {
-  const getSupabase = () => window.SIMAP?.Config?.getClient() || window.SIMAP?.supabase;
+  const getSupabase = () =>
+    window.SIMAP?.Config?.getClient() || window.SIMAP?.supabase;
+
+  // Supabase limita las filas por respuesta; recorrer páginas evita totales truncados.
+  const fetchAllRows = async (createQuery) => {
+    const rows = [];
+    const pageSize = 1000;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await createQuery().range(
+        offset,
+        offset + pageSize - 1,
+      );
+      if (error) throw error;
+      rows.push(...(data || []));
+      if (!data || data.length < pageSize) return rows;
+    }
+  };
 
   /**
    * Consulta las métricas consolidadas desde Supabase
    */
   const fetchDashboardData = async () => {
     const supabase = getSupabase();
-    if (!supabase) return null;
+    if (!supabase) {
+      console.error("Dashboard: el cliente de Supabase no está disponible.");
+      return null;
+    }
 
     try {
       // 1. Obtener todas las fichas de monitoreo con datos de docente e IE
-      const { data: fichas, error: errFichas } = await supabase
-        .from('fichas_monitoreo')
-        .select(`
+      const fichas = await fetchAllRows(() =>
+        supabase
+          .from("fichas_monitoreo")
+          .select(
+            `
           id_ficha,
           puntaje_total,
           nivel_riesgo,
           fecha_evaluacion,
           observaciones,
-          docentes ( nombres, apellido_paterno, especialidad ),
+          docentes:docentes!id_docente ( nombres, apellido_paterno, especialidad ),
           instituciones_educativas ( nombre_ie )
-        `)
-        .order('fecha_evaluacion', { ascending: false });
-
-      if (errFichas) throw errFichas;
+        `,
+          )
+          .order("created_at", { ascending: false })
+          .order("id_ficha", { ascending: false }),
+      );
 
       // 2. Obtener capacitaciones
-      const { data: capacitaciones, error: errCap } = await supabase
-        .from('capacitaciones')
-        .select('*')
-        .order('fecha_inicio', { ascending: false });
-
-      if (errCap) throw errCap;
+      const capacitaciones = await fetchAllRows(() =>
+        supabase
+          .from("capacitaciones")
+          .select("*")
+          .order("fecha_inicio", { ascending: false })
+          .order("id_capacitacion", { ascending: false }),
+      );
 
       // 3. Obtener todas las asistencias registradas
-      const { data: asistencias, error: errAsist } = await supabase
-        .from('asistencia_capacitaciones')
-        .select('id_asistencia, asistio');
-
-      if (errAsist) throw errAsist;
+      const asistencias = await fetchAllRows(() =>
+        supabase
+          .from("asistencia_capacitaciones")
+          .select("id_asistencia, asistio")
+          .order("id_asistencia", { ascending: true }),
+      );
 
       // 4. Conteo de docentes registrados en el sistema
       const { count: totalDocentes, error: errDoc } = await supabase
-        .from('docentes')
-        .select('*', { count: 'exact', head: true });
+        .from("docentes")
+        .select("*", { count: "exact", head: true });
 
       if (errDoc) throw errDoc;
 
@@ -56,11 +80,10 @@ const DashboardModule = (() => {
         fichas: fichas || [],
         capacitaciones: capacitaciones || [],
         asistencias: asistencias || [],
-        totalDocentes: totalDocentes || 0
+        totalDocentes: totalDocentes || 0,
       };
-
     } catch (err) {
-      console.error('Error al consultar datos del dashboard:', err);
+      console.error("Error al consultar datos del dashboard:", err);
       return null;
     }
   };
@@ -69,13 +92,13 @@ const DashboardModule = (() => {
    * Genera el HTML inicial del Dashboard con estados de carga
    */
   const render = () => {
-    const user = JSON.parse(localStorage.getItem('simap_user') || '{}');
-    const nombreUsuario = user.nombres || 'Especialista';
-    const rolUsuario = user.roles?.nombre_rol || 'Especialista Pedagógico';
+    const user = JSON.parse(localStorage.getItem("simap_user") || "{}");
+    const nombreUsuario = user.nombres || "Especialista";
+    const rolUsuario = user.roles?.nombre_rol || "Especialista Pedagógico";
 
     return `
       <div class="space-y-6">
-        
+
         <!-- Banner Principal de Bienvenida y Acciones -->
         <div class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 rounded-2xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div class="relative z-10 max-w-2xl">
@@ -108,9 +131,11 @@ const DashboardModule = (() => {
           <div class="absolute -right-16 -bottom-16 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
         </div>
 
+        <p id="dashboard-data-status" role="status" aria-live="polite" class="text-xs text-slate-500">Cargando datos actuales...</p>
+
         <!-- KPI CARDS: Métricas Principales -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          
+
           <!-- KPI 1: Monitoreos Realizados -->
           <div class="stat-card">
             <div class="flex items-center justify-between mb-3">
@@ -176,7 +201,7 @@ const DashboardModule = (() => {
              GRÁFICOS Y RESUMEN COMPARATIVO
              ==================================================================== -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
+
           <!-- Panel 1: Distribución de la Semaforización Pedagógica -->
           <div class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/80 shadow-sm flex flex-col justify-between">
             <div>
@@ -192,7 +217,7 @@ const DashboardModule = (() => {
 
               <!-- Barras de Distribución Visual -->
               <div class="space-y-4">
-                
+
                 <!-- Satisfactorio -->
                 <div>
                   <div class="flex items-center justify-between text-xs font-semibold mb-1">
@@ -260,7 +285,7 @@ const DashboardModule = (() => {
 
               <!-- Métricas Circulares / Bloque de Estadísticas -->
               <div class="grid grid-cols-2 gap-4">
-                
+
                 <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center text-center">
                   <div class="relative flex items-center justify-center w-20 h-20 mb-2">
                     <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
@@ -302,7 +327,7 @@ const DashboardModule = (() => {
              TABLAS INFERIORES: ÚLTIMAS FICHAS Y PRÓXIMOS EVENTOS
              ==================================================================== -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
+
           <!-- Lista de Monitoreos Recientes -->
           <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
             <div class="flex items-center justify-between mb-4">
@@ -361,24 +386,27 @@ const DashboardModule = (() => {
     let proceso = 0;
     let satisfactorio = 0;
 
-    fichas.forEach(f => {
-      if (f.nivel_riesgo === 'Crítico') criticos++;
-      else if (f.nivel_riesgo === 'En Proceso') proceso++;
-      else if (f.nivel_riesgo === 'Satisfactorio') satisfactorio++;
+    fichas.forEach((f) => {
+      if (f.nivel_riesgo === "Crítico") criticos++;
+      else if (f.nivel_riesgo === "En Proceso") proceso++;
+      else if (f.nivel_riesgo === "Satisfactorio") satisfactorio++;
     });
 
-    const pctCritico = totalFichas > 0 ? Math.round((criticos / totalFichas) * 100) : 0;
-    const pctProceso = totalFichas > 0 ? Math.round((proceso / totalFichas) * 100) : 0;
-    const pctSatisfactorio = totalFichas > 0 ? Math.round((satisfactorio / totalFichas) * 100) : 0;
+    const pctCritico =
+      totalFichas > 0 ? Math.round((criticos / totalFichas) * 100) : 0;
+    const pctProceso =
+      totalFichas > 0 ? Math.round((proceso / totalFichas) * 100) : 0;
+    const pctSatisfactorio =
+      totalFichas > 0 ? Math.round((satisfactorio / totalFichas) * 100) : 0;
 
     // 1. KPI Cards
-    const elTotal = document.getElementById('kpi-total-monitoreos');
-    const elCriticos = document.getElementById('kpi-criticos');
-    const elCriticosPct = document.getElementById('kpi-criticos-pct');
-    const elProceso = document.getElementById('kpi-proceso');
-    const elProcesoPct = document.getElementById('kpi-proceso-pct');
-    const elSatisfactorio = document.getElementById('kpi-satisfactorio');
-    const elSatisfactorioPct = document.getElementById('kpi-satisfactorio-pct');
+    const elTotal = document.getElementById("kpi-total-monitoreos");
+    const elCriticos = document.getElementById("kpi-criticos");
+    const elCriticosPct = document.getElementById("kpi-criticos-pct");
+    const elProceso = document.getElementById("kpi-proceso");
+    const elProcesoPct = document.getElementById("kpi-proceso-pct");
+    const elSatisfactorio = document.getElementById("kpi-satisfactorio");
+    const elSatisfactorioPct = document.getElementById("kpi-satisfactorio-pct");
 
     if (elTotal) elTotal.textContent = totalFichas;
     if (elCriticos) elCriticos.textContent = criticos;
@@ -386,15 +414,16 @@ const DashboardModule = (() => {
     if (elProceso) elProceso.textContent = proceso;
     if (elProcesoPct) elProcesoPct.textContent = `(${pctProceso}%)`;
     if (elSatisfactorio) elSatisfactorio.textContent = satisfactorio;
-    if (elSatisfactorioPct) elSatisfactorioPct.textContent = `(${pctSatisfactorio}%)`;
+    if (elSatisfactorioPct)
+      elSatisfactorioPct.textContent = `(${pctSatisfactorio}%)`;
 
     // 2. Barras de Distribución
-    const barSat = document.getElementById('bar-satisfactorio');
-    const barProc = document.getElementById('bar-proceso');
-    const barCrit = document.getElementById('bar-critico');
-    const lblSat = document.getElementById('bar-label-satisfactorio');
-    const lblProc = document.getElementById('bar-label-proceso');
-    const lblCrit = document.getElementById('bar-label-critico');
+    const barSat = document.getElementById("bar-satisfactorio");
+    const barProc = document.getElementById("bar-proceso");
+    const barCrit = document.getElementById("bar-critico");
+    const lblSat = document.getElementById("bar-label-satisfactorio");
+    const lblProc = document.getElementById("bar-label-proceso");
+    const lblCrit = document.getElementById("bar-label-critico");
 
     if (barSat) barSat.style.width = `${pctSatisfactorio}%`;
     if (barProc) barProc.style.width = `${pctProceso}%`;
@@ -405,7 +434,7 @@ const DashboardModule = (() => {
     if (lblCrit) lblCrit.textContent = `${criticos} (${pctCritico}%)`;
 
     // Diagnóstico
-    const diagBadge = document.getElementById('diagnostico-badge');
+    const diagBadge = document.getElementById("diagnostico-badge");
     if (diagBadge) {
       if (totalFichas === 0) {
         diagBadge.innerHTML = `<span class="text-slate-400 font-normal">Sin monitoreos aún</span>`;
@@ -421,51 +450,59 @@ const DashboardModule = (() => {
     // 3. Asistencias a Capacitaciones
     let presentes = 0;
     let ausentes = 0;
-    asistencias.forEach(a => {
+    asistencias.forEach((a) => {
       if (a.asistio) presentes++;
       else ausentes++;
     });
 
     const totalAsistenciasRegistradas = asistencias.length;
-    const pctAsistenciaGlobal = totalAsistenciasRegistradas > 0 ? Math.round((presentes / totalAsistenciasRegistradas) * 100) : 0;
+    const pctAsistenciaGlobal =
+      totalAsistenciasRegistradas > 0
+        ? Math.round((presentes / totalAsistenciasRegistradas) * 100)
+        : 0;
 
-    const elCirculo = document.getElementById('circle-progress-asistencia');
-    const elCirculoTxt = document.getElementById('circle-pct-text');
-    const elPresentesCount = document.getElementById('asist-presentes-count');
-    const elAusentesCount = document.getElementById('asist-ausentes-count');
-    const elTotalTalleres = document.getElementById('total-talleres-count');
+    const elCirculo = document.getElementById("circle-progress-asistencia");
+    const elCirculoTxt = document.getElementById("circle-pct-text");
+    const elPresentesCount = document.getElementById("asist-presentes-count");
+    const elAusentesCount = document.getElementById("asist-ausentes-count");
+    const elTotalTalleres = document.getElementById("total-talleres-count");
 
-    if (elCirculo) elCirculo.setAttribute('stroke-dasharray', `${pctAsistenciaGlobal}, 100`);
+    if (elCirculo)
+      elCirculo.setAttribute("stroke-dasharray", `${pctAsistenciaGlobal}, 100`);
     if (elCirculoTxt) elCirculoTxt.textContent = `${pctAsistenciaGlobal}%`;
     if (elPresentesCount) elPresentesCount.textContent = presentes;
     if (elAusentesCount) elAusentesCount.textContent = ausentes;
     if (elTotalTalleres) elTotalTalleres.textContent = capacitaciones.length;
 
     // 4. Tabla Fichas Recientes (Top 5)
-    const tbodyRecientes = document.getElementById('tabla-fichas-recientes');
+    const tbodyRecientes = document.getElementById("tabla-fichas-recientes");
     if (tbodyRecientes) {
       if (fichas.length === 0) {
         tbodyRecientes.innerHTML = `<tr><td colspan="4" class="py-6 text-center text-slate-400">No hay fichas registradas aún.</td></tr>`;
       } else {
-        tbodyRecientes.innerHTML = fichas.slice(0, 5).map(f => {
-          const docName = f.docentes ? `${f.docentes.apellido_paterno} ${f.docentes.nombres}` : 'Docente';
-          let badge = 'badge-satisfactorio';
-          if (f.nivel_riesgo === 'Crítico') badge = 'badge-critico';
-          else if (f.nivel_riesgo === 'En Proceso') badge = 'badge-proceso';
+        tbodyRecientes.innerHTML = fichas
+          .slice(0, 5)
+          .map((f) => {
+            const docName = f.docentes
+              ? `${f.docentes.apellido_paterno} ${f.docentes.nombres}`
+              : "Docente";
+            let badge = "badge-satisfactorio";
+            if (f.nivel_riesgo === "Crítico") badge = "badge-critico";
+            else if (f.nivel_riesgo === "En Proceso") badge = "badge-proceso";
 
-          let evalName = f.evaluador;
-          if (!evalName && f.observaciones) {
-            const m = f.observaciones.match(/\[Evaluador:\s*([^\]]+)\]/i);
-            if (m) evalName = m[1].trim();
-          }
+            let evalName = f.evaluador;
+            if (!evalName && f.observaciones) {
+              const m = f.observaciones.match(/\[Evaluador:\s*([^\]]+)\]/i);
+              if (m) evalName = m[1].trim();
+            }
 
-          return `
+            return `
             <tr class="hover:bg-slate-50">
               <td class="py-2.5 font-medium text-slate-600 whitespace-nowrap">${f.fecha_evaluacion}</td>
               <td class="py-2.5">
                 <span class="font-bold text-slate-800 block truncate max-w-[140px]">${docName}</span>
-                <span class="text-[10px] text-slate-400 truncate block max-w-[140px]">${f.instituciones_educativas?.nombre_ie || ''}</span>
-                ${evalName ? `<span class="text-[10px] text-indigo-600 font-medium truncate block max-w-[140px]">Por: ${evalName}</span>` : ''}
+                <span class="text-[10px] text-slate-400 truncate block max-w-[140px]">${f.instituciones_educativas?.nombre_ie || ""}</span>
+                ${evalName ? `<span class="text-[10px] text-indigo-600 font-medium truncate block max-w-[140px]">Por: ${evalName}</span>` : ""}
               </td>
               <td class="py-2.5 text-center font-bold text-slate-800">${f.puntaje_total}</td>
               <td class="py-2.5 text-center">
@@ -473,31 +510,37 @@ const DashboardModule = (() => {
               </td>
             </tr>
           `;
-        }).join('');
+          })
+          .join("");
       }
     }
 
     // 5. Lista de Capacitaciones Recientes (Top 3)
-    const listaCap = document.getElementById('lista-capacitaciones-recientes');
+    const listaCap = document.getElementById("lista-capacitaciones-recientes");
     if (listaCap) {
       if (capacitaciones.length === 0) {
         listaCap.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No hay capacitaciones programadas.</p>`;
       } else {
-        listaCap.innerHTML = capacitaciones.slice(0, 3).map(c => `
+        listaCap.innerHTML = capacitaciones
+          .slice(0, 3)
+          .map(
+            (c) => `
           <div class="p-3 rounded-xl border border-slate-100 hover:border-indigo-200 transition-colors bg-slate-50/60 flex items-center justify-between gap-3">
             <div class="min-w-0">
-              <span class="text-[10px] font-bold uppercase tracking-wider ${c.modalidad === 'Virtual' ? 'text-purple-600' : 'text-emerald-600'}">
+              <span class="text-[10px] font-bold uppercase tracking-wider ${c.modalidad === "Virtual" ? "text-purple-600" : "text-emerald-600"}">
                 ${c.modalidad} &bull; ${c.horas_academicas} hrs
               </span>
               <h5 class="text-xs font-bold text-slate-800 truncate">${c.nombre_tema}</h5>
-              <p class="text-[11px] text-slate-500 truncate">Ponente: ${c.ponente || 'Por asignar'}</p>
+              <p class="text-[11px] text-slate-500 truncate">Ponente: ${c.ponente || "Por asignar"}</p>
             </div>
             <div class="text-right flex-shrink-0">
               <span class="text-[11px] font-semibold text-slate-600 block">${c.fecha_inicio}</span>
               <a href="#/capacitaciones" class="text-[11px] font-bold text-blue-600 hover:underline">Asistencia</a>
             </div>
           </div>
-        `).join('');
+        `,
+          )
+          .join("");
       }
     }
   };
@@ -506,23 +549,54 @@ const DashboardModule = (() => {
    * Inicializa la vista y consulta los datos en vivo
    */
   const init = async () => {
-    // Configurar botón de refresco
-    document.getElementById('btn-refresh-dashboard')?.addEventListener('click', async () => {
-      window.SIMAP?.Notification?.info('Actualizando métricas del sistema...');
-      const data = await fetchDashboardData();
-      updateMetricsUI(data);
-      window.SIMAP?.Notification?.success('¡Datos actualizados!');
-    });
+    const button = document.getElementById("btn-refresh-dashboard");
+    const status = document.getElementById("dashboard-data-status");
+    let loading = false;
 
-    // Cargar datos
-    const data = await fetchDashboardData();
-    updateMetricsUI(data);
+    const refresh = async (notify = false) => {
+      if (loading) return;
+      loading = true;
+      if (button) button.disabled = true;
+      if (status) {
+        status.className = "text-xs text-slate-500";
+        status.textContent = "Consultando datos actuales...";
+      }
+
+      try {
+        const data = await fetchDashboardData();
+        // No actualizar una vista distinta si el usuario navegó durante la consulta.
+        if (status !== document.getElementById("dashboard-data-status")) return;
+        if (!data) {
+          if (status) {
+            status.className = "text-xs text-red-600";
+            status.textContent =
+              "No se pudieron actualizar los datos. La información mostrada puede estar desactualizada. Pulsa Actualizar Datos para reintentar.";
+          }
+          window.SIMAP?.Notification?.error(
+            "No se pudo cargar el dashboard. Revisa la conexión y los permisos de Supabase.",
+          );
+          return;
+        }
+        updateMetricsUI(data);
+        if (status) {
+          status.className = "text-xs text-emerald-700";
+          status.textContent = `Última actualización: ${new Date().toLocaleString("es-PE")}`;
+        }
+        if (notify) window.SIMAP?.Notification?.success("¡Datos actualizados!");
+      } finally {
+        loading = false;
+        if (button) button.disabled = false;
+      }
+    };
+
+    button?.addEventListener("click", () => refresh(true));
+    await refresh();
   };
 
   return {
     render,
     init,
-    fetchDashboardData
+    fetchDashboardData,
   };
 })();
 
