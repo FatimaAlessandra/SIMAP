@@ -969,19 +969,21 @@ const MonitoreoModule = (() => {
     const selectDocente = document.getElementById('select-docente');
     if (!selectDocente) return;
 
-    if (!ieId) {
-      selectDocente.innerHTML = '<option value="">-- Primero selecciona una Institución --</option>';
-      return;
-    }
-
-    const docentesIE = docentesCache.filter(d => d.id_ie === ieId);
+    const distrito = document.getElementById('select-distrito')?.value || '';
+    const instituciones = new Map(institucionesCache.map(ie => [ie.id_ie, ie]));
+    const docentesIE = docentesCache.filter(d => {
+      if (ieId) return d.id_ie === ieId;
+      const ie = instituciones.get(d.id_ie);
+      if (!ie) return false;
+      return !distrito.trim() || (ie.distrito || '').trim().toLowerCase() === distrito.trim().toLowerCase();
+    });
     if (docentesIE.length === 0) {
-      selectDocente.innerHTML = '<option value="">No hay docentes registrados en este colegio. ¡Haz clic en + Agregar Docente!</option>';
+      selectDocente.innerHTML = '<option value="">No hay docentes registrados en esta institución y nivel. Selecciona otro nivel o usa + Agregar Docente.</option>';
     } else {
       selectDocente.innerHTML = '<option value="">-- Seleccionar Docente a Evaluar --</option>' +
         docentesIE.map(d => `
           <option value="${d.id_docente}" ${selectTeacherId === d.id_docente ? 'selected' : ''}>
-            ${d.apellido_paterno} ${d.apellido_materno}, ${d.nombres} - ${d.especialidad || d.cargo} (DNI: ${d.dni || 'S/D'})
+            ${d.apellido_paterno} ${d.apellido_materno}, ${d.nombres} - ${d.especialidad || d.cargo} (DNI: ${d.dni || 'S/D'})${!ieId ? ` — ${instituciones.get(d.id_ie)?.nombre_ie || ''} (${instituciones.get(d.id_ie)?.nivel_educativo || ''})` : ''}
           </option>
         `).join('');
     }
@@ -998,7 +1000,10 @@ const MonitoreoModule = (() => {
     try {
       const session = await window.SIMAP?.Auth?.getSession();
       const userMeta = session?.user?.user_metadata || {};
-      userName = userMeta.full_name || userMeta.nombres || session?.user?.email?.split('@')[0] || 'Especialista UGEL';
+      const profile = session?.user?.id
+        ? await window.SIMAP?.Auth?.getUserProfile(session.user.id)
+        : null;
+      userName = profile?.nombres || userMeta.full_name || userMeta.nombres || session?.user?.email?.split('@')[0] || 'Especialista UGEL';
     } catch (e) {
       console.warn('No se pudo obtener usuario de sesión:', e);
     }
@@ -1006,7 +1011,7 @@ const MonitoreoModule = (() => {
     let html = `
       <optgroup label="Usuario en Sesión (Tú)">
         <option value="USER:${userName}" ${(!selectEvaluadorId || selectEvaluadorId.startsWith('USER:')) ? 'selected' : ''}>
-          ${userName} (Especialista UGEL / Directivo Conectado)
+          ${userName} (Usuario que realiza la evaluación)
         </option>
       </optgroup>
     `;
@@ -1746,6 +1751,16 @@ const MonitoreoModule = (() => {
 
     selectDistrito?.addEventListener('change', () => {
       actualizarComboIE(selectDistrito.value);
+    });
+
+    document.getElementById('select-docente')?.addEventListener('change', (event) => {
+      const docente = docentesCache.find(d => d.id_docente === event.target.value);
+      if (!docente || !selectIE || selectIE.value === docente.id_ie) return;
+      const ie = institucionesCache.find(i => i.id_ie === docente.id_ie);
+      if (!ie) return;
+      if (selectDistrito) selectDistrito.value = ie.distrito || '';
+      actualizarComboIE(ie.distrito || '', ie.id_ie);
+      actualizarComboDocentes(ie.id_ie, docente.id_docente);
     });
 
     selectIE?.addEventListener('change', () => {
