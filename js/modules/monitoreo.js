@@ -151,7 +151,7 @@ const MonitoreoModule = (() => {
           id_docente,
           created_at,
           evaluador,
-          docentes ( id_docente, nombres, apellido_paterno, apellido_materno, dni, especialidad ),
+          docentes:docentes!fichas_monitoreo_id_docente_fkey ( id_docente, nombres, apellido_paterno, apellido_materno, dni, especialidad ),
           instituciones_educativas ( id_ie, nombre_ie, distrito )
         `)
         .order('created_at', { ascending: false });
@@ -174,7 +174,7 @@ const MonitoreoModule = (() => {
             observaciones,
             id_docente,
             created_at,
-            docentes ( id_docente, nombres, apellido_paterno, apellido_materno, dni, especialidad ),
+            docentes:docentes!fichas_monitoreo_id_docente_fkey ( id_docente, nombres, apellido_paterno, apellido_materno, dni, especialidad ),
             instituciones_educativas ( id_ie, nombre_ie, distrito )
           `)
           .order('created_at', { ascending: false });
@@ -288,24 +288,7 @@ const MonitoreoModule = (() => {
                   <div id="main-ie-nivel-wrapper" class="hidden"></div>
                 </div>
 
-                <!-- Fila 2: Profesor a Evaluar -->
-                <div>
-                  <div class="flex items-center justify-between mb-1.5">
-                    <label for="select-docente" class="form-label mb-0 text-xs font-semibold flex items-center gap-1.5 text-slate-800">
-                      <span class="w-2 h-2 rounded-full bg-blue-600"></span>
-                      <span>Profesor a Evaluar (Observado en Aula) *</span>
-                    </label>
-                    <button type="button" id="btn-abrir-modal-docente" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
-                      <span>+ Agregar Docente</span>
-                    </button>
-                  </div>
-                  <select id="select-docente" class="form-input !pl-3 text-sm" required>
-                    <option value="">-- Primero selecciona una Institución --</option>
-                  </select>
-                </div>
-
-                <!-- Fila 3: Profesor Evaluador / Acompañante Pedagógico -->
+                <!-- Fila 2: Profesor Evaluador / Acompañante Pedagógico -->
                 <div>
                   <div class="flex items-center justify-between mb-1.5">
                     <label for="select-evaluador" class="form-label mb-0 text-xs font-semibold flex items-center gap-1.5 text-slate-800">
@@ -325,6 +308,23 @@ const MonitoreoModule = (() => {
                     <input type="text" id="input-evaluador-manual" class="form-input !pl-3 text-sm" placeholder="Ej: Mg. Carlos Morales Soto (Especialista UGEL / Directivo)">
                     <span class="text-[11px] text-slate-400 block">Escribe el nombre del docente o directivo que realiza la evaluación en aula.</span>
                   </div>
+                </div>
+
+                <!-- Fila 3: Profesor a Evaluar -->
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <label for="select-docente" class="form-label mb-0 text-xs font-semibold flex items-center gap-1.5 text-slate-800">
+                      <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                      <span>Profesor a Evaluar (Observado en Aula) *</span>
+                    </label>
+                    <button type="button" id="btn-abrir-modal-docente" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                      <span>+ Agregar Docente</span>
+                    </button>
+                  </div>
+                  <select id="select-docente" class="form-input !pl-3 text-sm" required>
+                    <option value="">-- Primero selecciona una Institución --</option>
+                  </select>
                 </div>
 
                 <!-- Fila 4: Etapa de Monitoreo y Fecha -->

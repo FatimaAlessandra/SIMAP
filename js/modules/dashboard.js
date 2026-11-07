@@ -44,7 +44,7 @@ const DashboardModule = (() => {
           nivel_riesgo,
           fecha_evaluacion,
           observaciones,
-          docentes:docentes!id_docente ( nombres, apellido_paterno, especialidad ),
+          docentes:docentes!fichas_monitoreo_id_docente_fkey ( nombres, apellido_paterno, especialidad ),
           instituciones_educativas ( nombre_ie )
         `,
           )
